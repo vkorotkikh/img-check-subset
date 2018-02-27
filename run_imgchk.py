@@ -24,7 +24,7 @@ import os
 import cv2
 import fx_img_process
 import numpy as np
-from scipy.misc import imread
+from scipy.misc import imread # uses PIL
 
 # from PIL import Image
 
