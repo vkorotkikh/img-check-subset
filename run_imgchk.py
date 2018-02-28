@@ -45,20 +45,6 @@ def main(imgpath_x, imgpath_y):
 
 #>******************************************************************************
 def base_procsort(imgx, imgy):
-
-    # ix = Image.open(imgx)
-    # iy = Image.open(imgy)
-
-    # ixformat = ix.format
-    # ixsize = ix.size
-    # ixtype = ix.mode
-    # print("Size: %d %d Type: %s Source: %s" % (ixsize[0], ixsize[1], ixtype, ixformat))
-    # iyformat = iy.format
-    # iysize = iy.size
-    # iytype = iy.mode
-
-    # reimgx = cv2.imread(imgx)
-    # reimgy = cv2.imread(imgy)
     reimgx = imread(imgx)
     reimgy = imread(imgy)
 
@@ -81,6 +67,17 @@ def base_procsort(imgx, imgy):
         '''How are the two images == in size?! '''
 
 
+def test_imgfeed(testpath=""):
+    timgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/Testing/"
+    timg1 = timgpath + 'jesusc8.jpg'
+    timg2 = timgpath + 'jc8slice8.jpg'
+    timg3 = timgpath + 'jc8slice8cut.jpg'
+
+    if testpath.isspace():
+        return [timg1, timg2, timg3]
+    else:
+        pass
+
 #>******************************************************************************
 def checkfile(ifilepath):
     """ Checks if file exists. Follows symlinks """
@@ -90,7 +87,7 @@ def checkfile(ifilepath):
         return 0
 
 
-
+#>******************************************************************************
 if __name__ == "__main__":
     try:
         main(sys.argv[1], sys.argv[2])

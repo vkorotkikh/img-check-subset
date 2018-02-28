@@ -17,8 +17,9 @@ from scipy import fftpack, ndimage, average
 from scipy.misc import imread
 from scipy.signal.signaltools import correlate2d as cor2d
 
-
+#>******************************************************************************
 def do_grayscale(imgarr):
+    """ Simplistic grayscale operation on a imgdata array """
     if len(imgarr.shape) == 3:
         return sp.average(imgarr, -1)
     else:
@@ -59,8 +60,8 @@ def fft2_croscor(imgx_dat, imgy_dat):
     imgx_dim = imgx_dat.shape
     imgy_dim = imgy_dat.shape
     ixd, iyd = imgx_dim, imgy_dim
-    xht = ixd[0] # heigth
-    xwd = ixd[1] # width
+    xht = ixd[0] # heigth/rows
+    xwd = ixd[1] # width/columns
     yht = iyd[0] # h
     ywd = iyd[1] # w
 
