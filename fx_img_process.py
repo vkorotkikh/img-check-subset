@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
 import itertools as itr
+from pprint import pprint
 from scipy import fftpack, ndimage, average
 from scipy.misc import imread
 from scipy.signal.signaltools import correlate2d as cor2d
@@ -55,47 +56,43 @@ def doplt(ifftdata):
     plt.show()
 
 #>******************************************************************************
-def fft2_croscor(imgx_dat, imgy_dat):
+def fft2_crosscorr(imgx_dat, imgy_dat):
     """ Assume imgx_dat is always going to be the bigger image, area wise"""
     imgx_dim = imgx_dat.shape
     imgy_dim = imgy_dat.shape
     ixd, iyd = imgx_dim, imgy_dim
-    xht = ixd[0] # heigth/rows
-    xwd = ixd[1] # width/columns
+    xht = ixd[0] # heigth
+    xwd = ixd[1] # width
     yht = iyd[0] # h
     ywd = iyd[1] # w
 
     divnum = 0
-    mulfact = 2
+    mulfact = 4
     upperb, lowerb = 0, 0
-    if xht > yht and xwd == ywd: # loop over rows
-        oned_slide_cxcorr(imgx_dat, imgy_dat, xht, yht, xwd, 'rows')
-        divnum = mulfact*(xht//yht)
-        stepd = int(xht/divnum)
-        for i in range(0, divnum):
-            if i*stepd + yht < xht:
-                upperb = i*stepd + yht
-                lowerb = i*stepd
-            else:
-                upperb = xht
-                lowerb = xht - yht
-    elif xwd > ywd and xht == yht: # loop over columns
-        oned_slide_cxcorr(imgx_dat, imgy_dat, xwd, ywd, xht, 'cols')
-        divum = mulfact*(xwd//ywd)
-        stepd = int(xwd/divnum)
-        for i in range(0, divnum):
-            # upperb, lowerb = 0, 0
-            if i*stepd + ywd < xwd:
-                upperb = i*stepd + ywd
-                lowerb = i*stepd
-            else:
-                upperb = xwd
-                lowerb = xwd - ywd
 
+    locmax_lt = []
+    locnmax_lt = []
+    if xht > yht and xwd == ywd: # loop over rows
+        loc_lt = oned_slide_cxscor(imgx_dat, imgy_dat, xht, yht, xwd, 'rows')
+        for xloc in loc_lt:
+            print(xloc)
+#         divnum = xht//yht
+#         stepd = mulfact*int(xht/divnum)
+#         for i in range(0, divnum):
+#             if (i*stepd + yht) < xht and i*(2*stepd) < xht:
+#                 upperb = i*stepd + yht
+#                 lowerb = i*stepd
+#             else:
+#                 upperb = xht
+#                 lowerb = xht - yht
+    elif xwd > ywd and xht == yht: # loop over columns
+        loc_lt = oned_slide_cxscor(imgx_dat, imgy_dat, xwd, ywd, xht, 'cols')
+        for xloc in loc_lt:
+            print(xloc)
     elif xht > yht and xwd > ywd:
-        mulfact = 4
-        divnumh = 2*(xht//yht) # Make stepsize 1/2 subimage size in that vec
-        divnumw = 2*(xwd//ywd)
+        mulfact = 2
+        divnumh = mulfact*(xht//yht) # Make stepsize 1/2 subimage size in that vec
+        divnumw = mulfact*(xwd//ywd)
         # stepht = mulfact*int(xht/divnumh)
         stepht = int(xht/divnumh)
         stepwd = int(xwd/divnumw)
@@ -103,36 +100,67 @@ def fft2_croscor(imgx_dat, imgy_dat):
         upperht, lowerht = 0, 0
         upperwd, lowerwd = 0, 0
 
+        subftconj = fftpack.fft2(imgy_dat).conj()
+        print("Ht",xht,yht," Wd", xwd, ywd)
+        print("Stepht: ", stepht, "Stephwd: ", stepwd)
         for ih in range(0, divnumh):
             ''' Do stepsize everywhere, so stepht instead yht and ... '''
-            if ih*stepht + yht < xht:
+            temp_lt = []
+            tmin_lt = []
+            if (ih*stepht + yht) < xht:
                 upperht = ih*stepht + yht
                 lowerht = ih*stepht
             else:
                 upperht = xht
                 lowerht = xht - yht
             for iw in range(0, divnumw):
-                if iw*stepwd + ywd < xwd:
+                if (iw*stepwd + ywd) < xwd:
+#                 if (iw*stepwd + ywd) < (xwd-stepwd):
                     upperwd = iw*stepwd + ywd
                     lowerwd = iw*stepwd
                 else:
                     upperwd = xwd
                     lowerwd = xwd - ywd
-                temp_dat = imgx_dat[lowerht:upperht][lowerwd:upperwd]
-                locmax = twod_slide_cxcorr(temp_dat, imgy_dat, ldirec)
-                ''' this one is messy '''
+                temp_dat = imgx_dat[lowerht:upperht, lowerwd:upperwd]
+#                 print(temp_dat.shape, type(temp_dat))
+#                 temp_dat = temp_dat[:, lowerwd:upperwd]
+                tempd_min = (temp_dat - temp_dat.mean())/ temp_dat.std()
+                locmax = twod_slide_cxcorr(temp_dat, imgy_dat)
+                locmaxnorm = twodsl_cxcorrproc(tempd_min, subftconj)
+                rowstr = str(lowerht) + ":" + str(upperht)
+                colstr = str(lowerwd) + ":" + str(upperwd)
+                # print("Indices", rowstr, colstr, " LocMax: ", locmax, locmaxnorm)
+                temp_lt.append(int(locmax))
+                tmin_lt.append(int(locmaxnorm))
+            locmax_lt.append(temp_lt)
+            locnmax_lt.append(tmin_lt)
+    for xlt in locmax_lt:
+        print("Index", np.argmax(xlt), np.amax(xlt))
+        print(xlt)
+    # for ilt in locnmax_lt:
+    #     print("Index", np.argmax(ilt), np.amax(ilt))
+    #     print(ilt)
+#     pprint(locmax_lt)
 
 #>******************************************************************************
-def twod_slide_cxcorr(islice, subimg, ldirec):
+def twod_slide_cxcorr(islice, subimg):
+#     print("slice:", islice.shape, "sub:", subimg.shape)
     img_product = fftpack.fft2(islice) * fftpack.fft2(subimg).conj()
     inv_prod = fftpack.ifft2(img_product)
-    return np.argmax(inv_prod)
+    return np.amax(inv_prod.real)
+#     doplt(islice)
 
 #>******************************************************************************
-def oned_slide_cxcorr(mimg_dat, simg_dat, majx, minx, equald, ldirec):
+def twodsl_cxcorrproc(islice, simgfcon):
+    img_product = fftpack.fft2(islice) * simgfcon
+    inv_prod = fftpack.ifft2(img_product)
+    return np.amax(inv_prod.real)
+
+#>******************************************************************************
+def oned_slide_cxscor(mimg_dat, simg_dat, majx, minx, equald, ldirec):
     """ In the case when the subimage has either width or height = to that of
     big image
-    Perform sliding cross-correlate calculation over the smaller dimension
+    Perform sliding 2d cross-correlate calculation over the smaller dimension
     mimg_dat - Main image numpy data array - normalized
     simg_dat - Subimage numpy data array - normalized
     majx - size major dimension of  full image - int
@@ -140,8 +168,8 @@ def oned_slide_cxcorr(mimg_dat, simg_dat, majx, minx, equald, ldirec):
     equald - size of dimension thats = between full image and subimage      """
     mulfact = 4
     upperb, lowerb = 0, 0
-    divnum = majx//minx
-    stepd = mulfact*int(majx/divnum)
+    divnum = mulfact*(majx//minx)
+    stepd = int(majx/divnum)
 
     cxcorr_maxlt = []
     for i in range(0, divnum):
@@ -152,47 +180,52 @@ def oned_slide_cxcorr(mimg_dat, simg_dat, majx, minx, equald, ldirec):
             upperb = majx
             lowerb = majx - minx
         if ldirec == 'rows':
-            islc = mimg_dat[lowerb:upperb][:]
+            islc = mimg_dat[lowerb:upperb]
+            print("Height:", islc.shape[0], "Width:", islc.shape[1])
             img_product = fftpack.fft2(islc) * fftpack.fft2(simg_dat).conj()
             inv_prod = fftpack.ifft2(img_product)
-            cxcorr_maxlt.append((i, np.argmax(inv_prod)))
+            cxcorr_maxlt.append((i, np.amax(inv_prod.real)))
+#             doplt(islc)
+#             doplt(inv_prod)
         elif ldirec == 'cols':
             islc = mimg_dat[:][lowerb:upperb]
+            print("Height:", islc.shape[0], "Width:", islc.shape[1])
             img_product = fftpack.fft2(islc) * fftpack.fft2(simg_dat).conj()
             inv_prod = fftpack.fft2(img_product)
-            cxcorr_maxlt.append((i, np.argmax(inv_prod)))
+            cxcorr_maxlt.append((i, np.amax(inv_prod.real)))
+    return cxcorr_maxlt
 
 
 #>******************************************************************************
-    divn = 4*(ixd[0]//iyd[0])
-    stepd = int(ixd[0]/divn)
-
-    for i in range(0, divn):
-        highs = 0
-        if i*stepd + iyd[0] < ixd[0]:
-            highs = i*stepd + iyd[0]
-            mins = i*stepd
-        else:
-            highs = ixd[0]
-            mins = ixd[0] - iyd[0]
-        ixloc = imgx_dat[mins:highs][:]
-        print(ixloc.shape)
-        img_product = fftpack.fft2(ixloc) * fftpack.fft2(imgy_dat).conj()
-        t_prod = fftpack.fft(np.transpose(ixloc))*fftpack.fft2(np.transpose(imgy_dat)).conj()
-        cc_tprod = fftpack.ifft2(t_prod)
-        cc_image = fftpack.ifft2(img_product)
-        cc_image.shape
-        print(np.argmax(cc_image), np.argmax(cc_tprod))
-        doplt(ixloc)
-        doplt(cc_image)
-    if xarea > yarea:
-        if ixd[0] > iyd[0]:
-            if ixd[1] == iyd[1]:
-                pass
-            else:
-                pass
-        elif ixd[1] > iyd[1]:
-            pass
+    # divn = 4*(ixd[0]//iyd[0])
+    # stepd = int(ixd[0]/divn)
+    #
+    # for i in range(0, divn):
+    #     highs = 0
+    #     if i*stepd + iyd[0] < ixd[0]:
+    #         highs = i*stepd + iyd[0]
+    #         mins = i*stepd
+    #     else:
+    #         highs = ixd[0]
+    #         mins = ixd[0] - iyd[0]
+    #     ixloc = imgx_dat[mins:highs][:]
+    #     print(ixloc.shape)
+    #     img_product = fftpack.fft2(ixloc) * fftpack.fft2(imgy_dat).conj()
+    #     t_prod = fftpack.fft(np.transpose(ixloc))*fftpack.fft2(np.transpose(imgy_dat)).conj()
+    #     cc_tprod = fftpack.ifft2(t_prod)
+    #     cc_image = fftpack.ifft2(img_product)
+    #     cc_image.shape
+    #     print(np.argmax(cc_image), np.argmax(cc_tprod))
+    #     doplt(ixloc)
+    #     doplt(cc_image)
+    # if xarea > yarea:
+    #     if ixd[0] > iyd[0]:
+    #         if ixd[1] == iyd[1]:
+    #             pass
+    #         else:
+    #             pass
+    #     elif ixd[1] > iyd[1]:
+    #         pass
 #     img_product = fftpack.fft2(imgx_dat) * fftpack.fft2(imgy_dat).conj()
 #     cc_image = fftpack.ifft2(img_product)
 #     cc_image.shape()
@@ -200,19 +233,19 @@ def oned_slide_cxcorr(mimg_dat, simg_dat, majx, minx, equald, ldirec):
 
 
 
-timgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/Testing/"
-timg1 = timgpath + 'jesusc8.jpg'
-timg2 = timgpath + 'jc8slice8.jpg'
-timg3 = timgpath + 'jc8slice8cut.jpg'
-
+# timgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/Testing/"
+# timg1 = timgpath + 'jesusc8.jpg'
+# timg2 = timgpath + 'jc8slice8.jpg'
+# timg3 = timgpath + 'jc8slice8cut.jpg'
+#
 # arg_lt = [timg1, timg2, timg3]
-arg_lt = [timg1, timg2]
+# arg_lt = [timg1, timg2]
 # narg = [do_imgfft2(ix) for ix in arg_lt]
-narg = [do_imzncc(ix) for ix in arg_lt]
-barg = [do_znccfft2(ix) for ix in arg_lt]
-acombs = list(itr.combinations(list(range(0,len(arg_lt))),2))
-for ac in acombs:
-    fft2_croscor(narg[ac[0]],narg[ac[1]])
+# narg = [do_imzncc(ix) for ix in arg_lt]
+# barg = [do_znccfft2(ix) for ix in arg_lt]
+# acombs = list(itr.combinations(list(range(0,len(arg_lt))),2))
+# for ac in acombs:
+#     fft2_croscor(narg[ac[0]],narg[ac[1]])
 
 
 # for xdat in narg:
@@ -221,7 +254,7 @@ for ac in acombs:
 #     xdot = np.dot(xdat, xdat.T)
 #     print(np.average(np.abs(xdot)))
 #     doplt(xdat)
-print("\n")
+
 # for bdat in barg:
 #     xc2d = cor2d(bdat, bdat, mode='same')
 #     print(xc2d.max())

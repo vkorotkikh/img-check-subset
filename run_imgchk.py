@@ -21,10 +21,12 @@ else:
 
 import os
 # from PIL import Image
-import cv2
-import fx_img_process
+import itertools as itr
 import numpy as np
+import scipy as sp
+from scipy import fftpack, ndimage
 from scipy.misc import imread # uses PIL
+import fx_img_process
 
 # from PIL import Image
 
@@ -39,9 +41,58 @@ def main(imgpath_x, imgpath_y):
             sys.exit("Image file DNE")
     else:
         sys.exit("Image file DNE")
+    # print("Python %s.%s" % (pyver_major, pyver_minor))
 
-    print("Python %s.%s" % (pyver_major, pyver_minor))
+#>******************************************************************************
+def do_imgtrueflat(ipath):
+    idata = ndimage.imread(ipath, flatten=True)
+    return idata
 
+#>******************************************************************************
+def do_imgzncc(ipath):
+    imgdata = do_imgtrueflat(ipath)
+    zndata = (imgdata - imgdata.mean())/ imgdata.std()
+    return zndata
+
+#>******************************************************************************
+def do_imgfft2(ipath):
+    imgdata = do_imgtrueflat(ipath)
+    fft2dat = fftpack.fft2(imgdata)
+    return fft2dat
+
+#>******************************************************************************
+def do_znccfft2(ipath):
+    imgdata = do_imgtrueflat(ipath)
+    zndata = (imgdata - imgdata.mean())/ imgdata.std()
+    fft2dat = fftpack.fft2(zndata)
+    return fft2dat
+
+#>******************************************************************************
+def test_main(image_lt):
+
+    # narg = [do_imgzncc(ix) for ix in image_lt]
+    ifdat_lt = [do_imgzncc(ix) for ix in image_lt]
+    area_lt = [ret_imgarea(ix) for ix in ifdat_lt]
+    acombs = list(itr.combinations(list(range(0,len(image_lt))),2))
+    for x in acombs:
+        if x[0] == 0 or x[0] == 1:
+            if area_lt[x[0]] > area_lt[x[1]]:
+                print("Img 1 is bigger")
+                fx_img_process.fft2_crosscorr(ifdat_lt[x[0]], ifdat_lt[x[1]])
+            elif area_lt[x[0]] < area_lt[x[1]]:
+                print("Img 2 is bigger")
+                fx_img_process.fft2_crosscorr(ifdat_lt[x[1]], ifdat_lt[x[0]])
+                # pass
+            elif area_lt[x[0]] == area_lt[x[1]]:
+                print("same size...")
+            # fft2_crosscor(narg[x[0]],narg[x[1]])
+
+
+#>******************************************************************************
+def ret_imgarea(imgarg):
+    # img_dat = imread(imgpath, flatten=True)
+    irow, icol = imgarg.shape
+    return irow*icol
 
 #>******************************************************************************
 def base_procsort(imgx, imgy):
@@ -67,16 +118,15 @@ def base_procsort(imgx, imgy):
         '''How are the two images == in size?! '''
 
 
+#>******************************************************************************
 def test_imgfeed(testpath=""):
     timgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/Testing/"
     timg1 = timgpath + 'jesusc8.jpg'
     timg2 = timgpath + 'jc8slice8.jpg'
     timg3 = timgpath + 'jc8slice8cut.jpg'
 
-    if testpath.isspace():
-        return [timg1, timg2, timg3]
-    else:
-        pass
+    return [timg1, timg2, timg3]
+
 
 #>******************************************************************************
 def checkfile(ifilepath):
@@ -92,4 +142,8 @@ if __name__ == "__main__":
     try:
         main(sys.argv[1], sys.argv[2])
     except IndexError:
-        sys.exit("Two Terminal arguments are required")
+        timg_lt = test_imgfeed()
+        if len(timg_lt) > 0:
+            test_main(timg_lt)
+        else:
+            sys.exit("Two Terminal arguments are required")
