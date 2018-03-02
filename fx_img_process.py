@@ -74,7 +74,7 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
     locmax_lt = []
     locnmax_lt = []
     if xht > yht and xwd == ywd: # loop over rows
-        loc_lt = oned_slide_cxscor(imgx_dat, imgy_dat, xht, yht, xwd, 'rows')
+        loc_lt = oned_slide_xcor(imgx_dat, imgy_dat, xht, yht, xwd, 'rows')
         for xloc in loc_lt:
             print(xloc)
 #         divnum = xht//yht
@@ -87,7 +87,7 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
 #                 upperb = xht
 #                 lowerb = xht - yht
     elif xwd > ywd and xht == yht: # loop over columns
-        loc_lt = oned_slide_cxscor(imgx_dat, imgy_dat, xwd, ywd, xht, 'cols')
+        loc_lt = oned_slide_xcor(imgx_dat, imgy_dat, xwd, ywd, xht, 'cols')
         for xloc in loc_lt:
             print(xloc)
     elif xht > yht and xwd > ywd:
@@ -117,6 +117,7 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
             else:
                 upperht = xht
                 lowerht = xht - yht
+            rcindices_lt.append((lowerht, upperht))
             for iw in range(0, divnumw):
                 if (iw*stepwd + ywd) < xwd:
 #                 if (iw*stepwd + ywd) < (xwd-stepwd):
@@ -153,14 +154,31 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
     for xlt in locmax_lt:
         print("Index", np.argmax(xlt), np.amax(xlt))
         print(xlt)
-
     print("")
     for xrc in rcindices_lt:
         print(xrc)
+    locmax_slicing(locmax_minarr, rcindices_lt)
     # for ilt in locnmax_lt:
     #     print("Index", np.argmax(ilt), np.amax(ilt))
     #     print(ilt)
-#     pprint(locmax_lt)
+
+#>******************************************************************************
+def locmax_slicing(lmax_array, rowcol_inds):
+    """ Using the result values to cut up the original image into individual
+    elements for more indepth subimage localization """
+    print(type(lmax_array), "", lmax_array.shape)
+    rows, cols = lmax_array.shape
+    tmp_lmax = lmax_array.copy()
+
+    newslice_lt = []
+
+    for rn in range(0, rows):
+        for cn in range(0, cols):
+            if tmp_lmax[rn, cn] > 0 and tmp_lmax[rn, cn+1] > 0:
+                pass
+            elif tmp_lmax[rn, cn] <= 0:
+                pass
+
 
 #>******************************************************************************
 def twod_slide_xcorr(islice, subimg):
@@ -177,7 +195,7 @@ def twod_slide_xcorrfast(islice, simgfcon):
     return np.amax(inv_prod.real)
 
 #>******************************************************************************
-def oned_slide_cxscor(mimg_dat, simg_dat, majx, minx, equald, ldirec):
+def oned_slide_xcor(mimg_dat, simg_dat, majx, minx, equald, ldirec):
     """ In the case when the subimage has either width or height = to that of
     big image
     Perform sliding 2d cross-correlate calculation over the smaller dimension
