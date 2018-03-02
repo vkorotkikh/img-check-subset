@@ -171,13 +171,28 @@ def locmax_slicing(lmax_array, rowcol_inds):
     tmp_lmax = lmax_array.copy()
 
     newslice_lt = []
+    tmp_hold = []
 
     for rn in range(0, rows):
+
+        temp_s = []
         for cn in range(0, cols):
-            if tmp_lmax[rn, cn] > 0 and tmp_lmax[rn, cn+1] > 0:
-                pass
-            elif tmp_lmax[rn, cn] <= 0:
-                pass
+            if rn==0:
+                if tmp_lmax[rn, cn] > 0:
+                    temp_s.append(rowcol_inds[0][rn], rowcol_inds[1][cn])
+                    if (cn+1) < cols and tmp_lmax[rn, cn+1] > 0:
+                        pass
+                    else:
+                        tmp_hold.append(temp_s)
+                        temp_s = []
+                else:
+                    pass
+            elif rn>0:
+                if tmp_lmax[rn, cn] > 0:
+                    if tmp_lmax[rn-1, cn] > 0:
+                        pass
+                else:
+                    pass
 
 
 #>******************************************************************************
