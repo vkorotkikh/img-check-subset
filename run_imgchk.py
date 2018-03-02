@@ -124,8 +124,10 @@ def test_imgfeed(testpath=""):
     timg1 = timgpath + 'jesusc8.jpg'
     timg2 = timgpath + 'jc8slice8.jpg'
     timg3 = timgpath + 'jc8slice8cut.jpg'
+    timg4 = timgpath + 'jc8piece.jpg'
 
-    return [timg1, timg2, timg3]
+    # return [timg1, timg2, timg3, timg4]
+    return [timg1, timg4]
 
 
 #>******************************************************************************

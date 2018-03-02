@@ -59,6 +59,7 @@ def doplt(ifftdata):
 def fft2_crosscorr(imgx_dat, imgy_dat):
     """ Assume imgx_dat is always going to be the bigger image, area wise"""
     imgx_dim = imgx_dat.shape
+    print(imgx_dim)
     imgy_dim = imgy_dat.shape
     ixd, iyd = imgx_dim, imgy_dim
     xht = ixd[0] # heigth
@@ -90,7 +91,7 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
         for xloc in loc_lt:
             print(xloc)
     elif xht > yht and xwd > ywd:
-        mulfact = 2
+        mulfact = 3
         divnumh = mulfact*(xht//yht) # Make stepsize 1/2 subimage size in that vec
         divnumw = mulfact*(xwd//ywd)
         # stepht = mulfact*int(xht/divnumh)
@@ -103,8 +104,11 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
         subftconj = fftpack.fft2(imgy_dat).conj()
         print("Ht",xht,yht," Wd", xwd, ywd)
         print("Stepht: ", stepht, "Stephwd: ", stepwd)
+        """ Build the index - pixel loc matrix """
+        rcindices_lt = []
         for ih in range(0, divnumh):
             ''' Do stepsize everywhere, so stepht instead yht and ... '''
+            tm_rcinds = []
             temp_lt = []
             tmin_lt = []
             if (ih*stepht + yht) < xht:
@@ -121,29 +125,45 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
                 else:
                     upperwd = xwd
                     lowerwd = xwd - ywd
+                tm_rcinds.append(((lowerht, upperht), (lowerwd, upperwd)))
                 temp_dat = imgx_dat[lowerht:upperht, lowerwd:upperwd]
 #                 print(temp_dat.shape, type(temp_dat))
 #                 temp_dat = temp_dat[:, lowerwd:upperwd]
                 tempd_min = (temp_dat - temp_dat.mean())/ temp_dat.std()
-                locmax = twod_slide_cxcorr(temp_dat, imgy_dat)
-                locmaxnorm = twodsl_cxcorrproc(tempd_min, subftconj)
+                locmax = twod_slide_xcorr(temp_dat, imgy_dat)
+                locmaxnorm = twod_slide_xcorrfast(tempd_min, subftconj)
                 rowstr = str(lowerht) + ":" + str(upperht)
                 colstr = str(lowerwd) + ":" + str(upperwd)
-                # print("Indices", rowstr, colstr, " LocMax: ", locmax, locmaxnorm)
+                print("Indices", rowstr, colstr, " LocMax: ", locmax)
                 temp_lt.append(int(locmax))
                 tmin_lt.append(int(locmaxnorm))
+            rcindices_lt.append(tm_rcinds)
             locmax_lt.append(temp_lt)
-            locnmax_lt.append(tmin_lt)
+            # locnmax_lt.append(tmin_lt)
+    locmax_arr = np.asarray(locmax_lt)
+    print(locmax_arr.shape)
+    print(locmax_arr)
+    print(np.std(locmax_arr))
+    locmax_minarr = (locmax_arr - int(locmax_arr.mean())) / (np.std(locmax_arr))
+    locmax_minarr = locmax_minarr.astype(int)
+    print("")
+    print(np.mean(locmax_minarr), np.average(locmax_minarr))
+    for xarr in locmax_minarr:
+        print(xarr, "", np.average(xarr))
     for xlt in locmax_lt:
         print("Index", np.argmax(xlt), np.amax(xlt))
         print(xlt)
+
+    print("")
+    for xrc in rcindices_lt:
+        print(xrc)
     # for ilt in locnmax_lt:
     #     print("Index", np.argmax(ilt), np.amax(ilt))
     #     print(ilt)
 #     pprint(locmax_lt)
 
 #>******************************************************************************
-def twod_slide_cxcorr(islice, subimg):
+def twod_slide_xcorr(islice, subimg):
 #     print("slice:", islice.shape, "sub:", subimg.shape)
     img_product = fftpack.fft2(islice) * fftpack.fft2(subimg).conj()
     inv_prod = fftpack.ifft2(img_product)
@@ -151,7 +171,7 @@ def twod_slide_cxcorr(islice, subimg):
 #     doplt(islice)
 
 #>******************************************************************************
-def twodsl_cxcorrproc(islice, simgfcon):
+def twod_slide_xcorrfast(islice, simgfcon):
     img_product = fftpack.fft2(islice) * simgfcon
     inv_prod = fftpack.ifft2(img_product)
     return np.amax(inv_prod.real)
