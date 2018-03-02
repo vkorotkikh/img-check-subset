@@ -127,7 +127,7 @@ def test_imgfeed(testpath=""):
     timg4 = timgpath + 'jc8piece.jpg'
 
     # return [timg1, timg2, timg3, timg4]
-    return [timg1, timg4]
+    return [timg1, timg3]
 
 #>******************************************************************************
 def test_bigimg(testpath=""):
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     try:
         main(sys.argv[1], sys.argv[2])
     except IndexError:
-        timg_lt = test_bigimg()
+        timg_lt = test_imgfeed()
         if len(timg_lt) > 0:
             test_main(timg_lt)
         else:

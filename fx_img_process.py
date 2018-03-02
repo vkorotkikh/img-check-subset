@@ -76,15 +76,6 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
         loc_lt = oned_slide_xcor(imgx_dat, imgy_dat, xht, yht, xwd, 'rows')
         for xloc in loc_lt:
             print(xloc)
-#         divnum = xht//yht
-#         stepd = mulfact*int(xht/divnum)
-#         for i in range(0, divnum):
-#             if (i*stepd + yht) < xht and i*(2*stepd) < xht:
-#                 upperb = i*stepd + yht
-#                 lowerb = i*stepd
-#             else:
-#                 upperb = xht
-#                 lowerb = xht - yht
     elif xwd > ywd and xht == yht: # loop over columns
         loc_lt = oned_slide_xcor(imgx_dat, imgy_dat, xwd, ywd, xht, 'cols')
         for xloc in loc_lt:
@@ -142,9 +133,9 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
             locmax_lt.append(temp_lt)
             # locnmax_lt.append(tmin_lt)
     locmax_arr = np.asarray(locmax_lt)
-    print(locmax_arr.shape)
-    print(locmax_arr)
-    print(np.std(locmax_arr))
+    # print(locmax_arr.shape)
+    # print(locmax_arr)
+    # print(np.std(locmax_arr))
 
     locmax_normed = (locmax_arr - int(locmax_arr.mean())) / (np.std(locmax_arr)/2)
     locmax_normed = locmax_normed.astype(int)
@@ -152,24 +143,69 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
     print("")
     locmax_avgd = (locmax_arr / locmax_arr.mean())
     locmax_avgd.astype(int)
-    # for xarr in locmax_normed:
-    #     print(xarr, "", np.average(xarr))
+    print("Total Avg: ", np.average(locmax_normed), "Stdev", np.std(locmax_normed))
+    for xarr in locmax_normed:
+        print(xarr, "", np.average(xarr))
     # for xlt in locmax_lt:
     #     print("Index: ", np.argmax(xlt), np.amax(xlt))
     #     print(xlt)
-    stats_amavg = []
 
-    for xavg in locmax_avgd:
-        print("Index: ", np.argmax(xavg), np.amax(xavg))
-        stats_amavg.append(np.amax(xavg))
-        print(xavg)
-    print("Average/mean: ", np.average(stats_amavg), "Stdev: ", np.std(stats_amavg), "Variance: ", np.var(stats_amavg))
-    # print("")
-    # for xrc in rcindices_lt:
-    #     print(xrc)
-    locmax_slicing(locmax_normed, rcindices_lt)
-    # for ilt in locnmax_lt:
-    #     print("Index", np.argmax(ilt), np.amax(ilt))
+    # stats_amavg = []
+    # for xavg in locmax_avgd:
+    #     print("Index: ", np.argmax(xavg), np.amax(xavg))
+    #     stats_amavg.append(np.amax(xavg))
+    #     print(xavg)
+    # print("Average/mean: ", np.average(stats_amavg), "Stdev: ", np.std(stats_amavg), "Variance: ", np.var(stats_amavg))
+
+    nres_slicing(locmax_normed, rcindices_lt)
+
+
+#>******************************************************************************
+def nres_slicing(lmax_array, rowcol_inds):
+    """ Using the result values to cut up the original image into individual
+    elements for more indepth subimage localization
+    lmax_array - Contains the normalized maximum coefficient values computed for
+    each subcell of main image
+    rowcol_inds - List containing tuples of (height start, height end), (width"""
+
+    rows, cols = lmax_array.shape
+    totavrg = np.average(lmax_array)
+    totstdev = np.std(lmax_array)
+    amax_arr = np.amax(lmax_array)
+    amax_stdev = amax_arr//totstdev
+
+    goodrows = []
+    for rn in range(0, rows):
+        rnumavg = np.average(lmax_array[rn])
+        rowamax = np.amax(lmax_array[rn])
+        grow = []
+        if rnumavg < totavrg:
+            pass
+        elif rnumavg <= 0:
+            pass
+        elif rnumavg > totavrg:
+            if rowamax > totstdev + totavrg:
+                goodrows.append(lmax_array[rn])
+            elif rowamax > 2*totstdev:
+                goodrows.append(lmax_array[rn])
+            else:
+                pass
+        elif rnumavg < totavrg and rowamax > (totstdev + totavrg):
+            if rowamax > totstdev + totavrg:
+                goodrows.append(lmax_array[rn])
+            elif rowamax > 2*totstdev:
+                goodrows.append(lmax_array[rn])
+            else:
+                pass
+    print("")
+    for gr in goodrows:
+        print(gr)
+        # for cn in range(0, cols):
+    # for cn in range(0, len(goodrows)):
+
+
+            # pass
+
 
 #>******************************************************************************
 def locmax_slicing(lmax_array, rowcol_inds):
