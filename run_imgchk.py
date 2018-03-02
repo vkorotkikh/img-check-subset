@@ -129,6 +129,14 @@ def test_imgfeed(testpath=""):
     # return [timg1, timg2, timg3, timg4]
     return [timg1, timg4]
 
+#>******************************************************************************
+def test_bigimg(testpath=""):
+    lgimgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/LgTesting/"
+    limg1 = "04041_mountrainier_2880x1800.jpg"
+    limg1c = "04041_mountrainier_smcut.jpg"
+
+    img_lt = [lgimgpath + xg for xg in [limg1, limg1c]]
+    return img_lt
 
 #>******************************************************************************
 def checkfile(ifilepath):
@@ -144,7 +152,7 @@ if __name__ == "__main__":
     try:
         main(sys.argv[1], sys.argv[2])
     except IndexError:
-        timg_lt = test_imgfeed()
+        timg_lt = test_bigimg()
         if len(timg_lt) > 0:
             test_main(timg_lt)
         else:

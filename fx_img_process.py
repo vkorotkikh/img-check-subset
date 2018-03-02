@@ -59,7 +59,6 @@ def doplt(ifftdata):
 def fft2_crosscorr(imgx_dat, imgy_dat):
     """ Assume imgx_dat is always going to be the bigger image, area wise"""
     imgx_dim = imgx_dat.shape
-    print(imgx_dim)
     imgy_dim = imgy_dat.shape
     ixd, iyd = imgx_dim, imgy_dim
     xht = ixd[0] # heigth
@@ -126,16 +125,17 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
                 else:
                     upperwd = xwd
                     lowerwd = xwd - ywd
-                tm_rcinds.append(((lowerht, upperht), (lowerwd, upperwd)))
+                tm_rcinds.append((lowerwd, upperwd))
                 temp_dat = imgx_dat[lowerht:upperht, lowerwd:upperwd]
 #                 print(temp_dat.shape, type(temp_dat))
 #                 temp_dat = temp_dat[:, lowerwd:upperwd]
+                ''' try local normalization for temp image of large image '''
                 tempd_min = (temp_dat - temp_dat.mean())/ temp_dat.std()
                 locmax = twod_slide_xcorr(temp_dat, imgy_dat)
                 locmaxnorm = twod_slide_xcorrfast(tempd_min, subftconj)
                 rowstr = str(lowerht) + ":" + str(upperht)
                 colstr = str(lowerwd) + ":" + str(upperwd)
-                print("Indices", rowstr, colstr, " LocMax: ", locmax)
+                # print("Indices", rowstr, colstr, " LocMax: ", locmax)
                 temp_lt.append(int(locmax))
                 tmin_lt.append(int(locmaxnorm))
             rcindices_lt.append(tm_rcinds)
@@ -145,22 +145,31 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
     print(locmax_arr.shape)
     print(locmax_arr)
     print(np.std(locmax_arr))
-    locmax_minarr = (locmax_arr - int(locmax_arr.mean())) / (np.std(locmax_arr))
-    locmax_minarr = locmax_minarr.astype(int)
+
+    locmax_normed = (locmax_arr - int(locmax_arr.mean())) / (np.std(locmax_arr)/2)
+    locmax_normed = locmax_normed.astype(int)
+    print(np.mean(locmax_normed), np.average(locmax_normed))
     print("")
-    print(np.mean(locmax_minarr), np.average(locmax_minarr))
-    for xarr in locmax_minarr:
-        print(xarr, "", np.average(xarr))
-    for xlt in locmax_lt:
-        print("Index", np.argmax(xlt), np.amax(xlt))
-        print(xlt)
-    print("")
-    for xrc in rcindices_lt:
-        print(xrc)
-    locmax_slicing(locmax_minarr, rcindices_lt)
+    locmax_avgd = (locmax_arr / locmax_arr.mean())
+    locmax_avgd.astype(int)
+    # for xarr in locmax_normed:
+    #     print(xarr, "", np.average(xarr))
+    # for xlt in locmax_lt:
+    #     print("Index: ", np.argmax(xlt), np.amax(xlt))
+    #     print(xlt)
+    stats_amavg = []
+
+    for xavg in locmax_avgd:
+        print("Index: ", np.argmax(xavg), np.amax(xavg))
+        stats_amavg.append(np.amax(xavg))
+        print(xavg)
+    print("Average/mean: ", np.average(stats_amavg), "Stdev: ", np.std(stats_amavg), "Variance: ", np.var(stats_amavg))
+    # print("")
+    # for xrc in rcindices_lt:
+    #     print(xrc)
+    locmax_slicing(locmax_normed, rcindices_lt)
     # for ilt in locnmax_lt:
     #     print("Index", np.argmax(ilt), np.amax(ilt))
-    #     print(ilt)
 
 #>******************************************************************************
 def locmax_slicing(lmax_array, rowcol_inds):
@@ -179,7 +188,7 @@ def locmax_slicing(lmax_array, rowcol_inds):
         for cn in range(0, cols):
             if rn==0:
                 if tmp_lmax[rn, cn] > 0:
-                    temp_s.append(rowcol_inds[0][rn], rowcol_inds[1][cn])
+                    temp_s.append((rowcol_inds[0][rn], rowcol_inds[1][cn]))
                     if (cn+1) < cols and tmp_lmax[rn, cn+1] > 0:
                         pass
                     else:
