@@ -69,7 +69,9 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
     divnum = 0
     mulfact = 4
     upperb, lowerb = 0, 0
-
+    '''format float output from calc '''
+    # float_formatter = lambda x: "%.2f" % x
+    np.set_printoptions(precision=2, linewidth=90, suppress=True)
     locmax_lt = []
     locnmax_lt = []
     if xht > yht and xwd == ywd: # loop over rows
@@ -137,7 +139,7 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
     # print(locmax_arr)
     # print(np.std(locmax_arr))
 
-    locmax_normed = (locmax_arr - int(locmax_arr.mean())) / (np.std(locmax_arr)/2)
+    locmax_normed = (locmax_arr - locmax_arr.mean()) / (np.std(locmax_arr)/2)
     locmax_normed = locmax_normed.astype(int)
     print(np.mean(locmax_normed), np.average(locmax_normed))
     print("")
@@ -199,11 +201,23 @@ def nres_slicing(lmax_array, rowcol_inds):
                 pass
     print("")
     for gr in goodrows:
-        print(gr)
+        newgr = [ix = 0 for ix in gr if ix<=0
+        newgr = [(0 if ix<=0 else (ix if ix > 0) for ix in gr]
+
+        ar = [('four' if i % 4 == 0 else ('six' if i % 6 == 0 else i)) for i in range(1, n)]
+
+        for gn in range(0, cols):
+            print(gr[gn])
         # for cn in range(0, cols):
     # for cn in range(0, len(goodrows)):
 
+#>******************************************************************************
+def get_npstats(np_onedarray):
 
+    arr_avg = np.average(np_onedarray)
+    arr_amax = np.average(np_onedarray)
+    arr_stdev = np.std(np_onedarray)
+    return arr_avg, arr_amax, arr_stdev
             # pass
 
 

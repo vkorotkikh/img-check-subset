@@ -45,6 +45,8 @@ def main(imgpath_x, imgpath_y):
 
 #>******************************************************************************
 def do_imgtrueflat(ipath):
+    """ Using scipy.ndimage parse in image, flatten the data to grayscale and
+    return grayscale 2d data """
     idata = ndimage.imread(ipath, flatten=True)
     return idata
 
@@ -69,7 +71,7 @@ def do_znccfft2(ipath):
 
 #>******************************************************************************
 def test_main(image_lt):
-
+    """ main used for testing purposes. Uses hardcoded image paths and names """
     # narg = [do_imgzncc(ix) for ix in image_lt]
     ifdat_lt = [do_imgzncc(ix) for ix in image_lt]
     area_lt = [ret_imgarea(ix) for ix in ifdat_lt]
@@ -90,6 +92,8 @@ def test_main(image_lt):
 
 #>******************************************************************************
 def ret_imgarea(imgarg):
+    """ Use scipy imread to get flattened/grayscale image data and calculate
+    image area using row-col values from .shape """
     # img_dat = imread(imgpath, flatten=True)
     irow, icol = imgarg.shape
     return irow*icol
@@ -131,6 +135,9 @@ def test_imgfeed(testpath=""):
 
 #>******************************************************************************
 def test_bigimg(testpath=""):
+    """ Return list of all large images and their subimages/slices
+    testpath - Maybe(?) implemented later
+    """
     lgimgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/LgTesting/"
     limg1 = "04041_mountrainier_2880x1800.jpg"
     limg1c = "04041_mountrainier_smcut.jpg"
@@ -140,7 +147,7 @@ def test_bigimg(testpath=""):
 
 #>******************************************************************************
 def checkfile(ifilepath):
-    """ Checks if file exists. Follows symlinks """
+    """ Checks if file exists at given path=ifilepath. Follows symlinks """
     if os.path.isfile(ifilepath):
         return 1
     else:
