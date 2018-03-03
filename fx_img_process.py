@@ -201,19 +201,19 @@ def nres_slicing(lmax_array, rowcol_inds):
                 pass
     print("")
     for gr in goodrows:
-        newgr = [ix = 0 for ix in gr if ix<=0
+        # newgr = [ix = 0 for ix in gr if ix<=0
         newgr = [(0 if ix<=0 else (ix if ix > 0) for ix in gr]
 
-        ar = [('four' if i % 4 == 0 else ('six' if i % 6 == 0 else i)) for i in range(1, n)]
+        # ar = [('four' if i % 4 == 0 else ('six' if i % 6 == 0 else i)) for i in range(1, n)]
 
         for gn in range(0, cols):
             print(gr[gn])
-        # for cn in range(0, cols):
-    # for cn in range(0, len(goodrows)):
+
 
 #>******************************************************************************
 def get_npstats(np_onedarray):
-
+    """ Simple function to get and return avg, maxvalue and standard deviation
+    values for a given np array """
     arr_avg = np.average(np_onedarray)
     arr_amax = np.average(np_onedarray)
     arr_stdev = np.std(np_onedarray)
