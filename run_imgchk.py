@@ -23,7 +23,6 @@ import os
 # from PIL import Image
 import itertools as itr
 import numpy as np
-import scipy as sp
 from scipy import fftpack, ndimage
 from scipy.misc import imread # uses PIL
 import fx_img_process
@@ -34,9 +33,13 @@ import fx_img_process
 def main(imgpath_x, imgpath_y):
     if checkfile(imgpath_x):
         if checkfile(imgpath_y):
-            fx_img_process.get_imgdata(imgpath_x, imgpath_y)
-            # tempargs = base_procsort(imgpath_x, imgpath_y)
-            # print(tempargs)
+            areax, areay = ret_imgarea(imgpath_x), ret_imgarea(imgpath_y)
+            if areax > areay:
+                fx_img_process.fft2_crosscorr(imgpath_x, imgpath_y)
+            elif areax < areay:
+                fx_img_process.fft2_crosscorr(imgpath_y, imgpath_x)
+            else:
+                pass
         else:
             sys.exit("Image file DNE")
     else:
@@ -52,6 +55,7 @@ def do_imgtrueflat(ipath):
 
 #>******************************************************************************
 def do_imgzncc(ipath):
+    """ normalize the data before doing cross-correlation calculations """
     imgdata = do_imgtrueflat(ipath)
     zndata = (imgdata - imgdata.mean())/ imgdata.std()
     return zndata
@@ -97,30 +101,6 @@ def ret_imgarea(imgarg):
     # img_dat = imread(imgpath, flatten=True)
     irow, icol = imgarg.shape
     return irow*icol
-
-#>******************************************************************************
-def base_procsort(imgx, imgy):
-    reimgx = imread(imgx)
-    reimgy = imread(imgy)
-
-    hx, wx, chx = np.shape(reimgx)
-    print("Height: %s" % str(hx))
-    print("Width: %s" % str(wx))
-    print("BPP : %s " % str(chx))
-
-    hy, wy, chy = np.shape(reimgy)
-    print("Height: %s" % str(hy))
-    print("Width: %s" % str(wy))
-    print("BPP : %s " % str(chy))
-
-    if int(hx*wx) > int(hy*wy):
-        return imgx, imgy
-    elif int(hx*wx) < int(hy*wy):
-        return imgy, imgx
-    else:
-        return 0
-        '''How are the two images == in size?! '''
-
 
 #>******************************************************************************
 def test_imgfeed(testpath=""):

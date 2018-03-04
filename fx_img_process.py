@@ -27,24 +27,17 @@ def do_grayscale(imgarr):
         return imgarr
 
 #>******************************************************************************
-def do_imzncc(ipath):
+def do_imgznorm(ipath):
     """ imread image data and perform normalization """
     imgdata = ndimage.imread(ipath, flatten=True)
     zndata = (imgdata - imgdata.mean())/ imgdata.std()
     return zndata
 
-#>******************************************************************************
-def do_imgfft2(ipath):
+def do_imgflipnorm(ipath):
     imgdata = ndimage.imread(ipath, flatten=True)
-    fft2dat = fftpack.fft2(imgdata)
-    return fft2dat
-
-#>******************************************************************************
-def do_znccfft2(ipath):
-    imgdata = ndimage.imread(ipath, flatten=True)
-    zndata = (imgdata - imgdata.mean())/ imgdata.std()
-    fft2dat = fftpack.fft2(zndata)
-    return fft2dat
+    dataflip = np.flipud(imgdata)
+    zndata = (dataflip - dataflip.mean())/dataflip.std()
+    return zndata
 
 #>******************************************************************************
 def doplt(ifftdata):
@@ -56,8 +49,11 @@ def doplt(ifftdata):
     plt.show()
 
 #>******************************************************************************
-def fft2_crosscorr(imgx_dat, imgy_dat):
+def fft2_crosscorr(imgx, imgy):
     """ Assume imgx_dat is always going to be the bigger image, area wise"""
+    imgx_dat = do_imgznorm(imgx)
+    imgy_dat = do_imgznorm(imgy)
+    imgy_flp = do_imgflipnorm(imgy)
     imgx_dim = imgx_dat.shape
     imgy_dim = imgy_dat.shape
     ixd, iyd = imgx_dim, imgy_dim
@@ -109,7 +105,7 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
             else:
                 upperht = xht
                 lowerht = xht - yht
-            rcindices_lt.append((lowerht, upperht))
+            # rcindices_lt.append((lowerht, upperht))
             for iw in range(0, divnumw):
                 if (iw*stepwd + ywd) < xwd:
 #                 if (iw*stepwd + ywd) < (xwd-stepwd):
@@ -118,13 +114,12 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
                 else:
                     upperwd = xwd
                     lowerwd = xwd - ywd
-                tm_rcinds.append((lowerwd, upperwd))
+                tm_rcinds.append(((lowerht, upperht), (lowerwd, upperwd)))
                 temp_dat = imgx_dat[lowerht:upperht, lowerwd:upperwd]
-#                 print(temp_dat.shape, type(temp_dat))
-#                 temp_dat = temp_dat[:, lowerwd:upperwd]
                 ''' try local normalization for temp image of large image '''
                 tempd_min = (temp_dat - temp_dat.mean())/ temp_dat.std()
                 locmax = twod_slide_xcorr(temp_dat, imgy_dat)
+                locmaxfl = twod_slide_xcorr(temp_dat, imgy_flp)
                 locmaxnorm = twod_slide_xcorrfast(tempd_min, subftconj)
                 rowstr = str(lowerht) + ":" + str(upperht)
                 colstr = str(lowerwd) + ":" + str(upperwd)
@@ -134,32 +129,31 @@ def fft2_crosscorr(imgx_dat, imgy_dat):
             rcindices_lt.append(tm_rcinds)
             locmax_lt.append(temp_lt)
             # locnmax_lt.append(tmin_lt)
-    locmax_arr = np.asarray(locmax_lt)
-    # print(locmax_arr.shape)
-    # print(locmax_arr)
-    # print(np.std(locmax_arr))
+        locmax_arr = np.asarray(locmax_lt)
+        # print(locmax_arr.shape)
+        # print(locmax_arr)
+        # print(np.std(locmax_arr))
 
-    locmax_normed = (locmax_arr - locmax_arr.mean()) / (np.std(locmax_arr)/2)
-    locmax_normed = locmax_normed.astype(int)
-    print(np.mean(locmax_normed), np.average(locmax_normed))
-    print("")
-    locmax_avgd = (locmax_arr / locmax_arr.mean())
-    locmax_avgd.astype(int)
-    print("Total Avg: ", np.average(locmax_normed), "Stdev", np.std(locmax_normed))
-    for xarr in locmax_normed:
-        print(xarr, "", np.average(xarr))
-    # for xlt in locmax_lt:
-    #     print("Index: ", np.argmax(xlt), np.amax(xlt))
-    #     print(xlt)
+        locmax_normed = (locmax_arr - locmax_arr.mean()) / (np.std(locmax_arr)/2)
+        # locmax_normed = locmax_normed.astype(int
+        print(np.mean(locmax_normed), np.average(locmax_normed))
+        print("")
+        locmax_avgd = (locmax_arr / locmax_arr.mean())
+        locmax_avgd.astype(int)
+        print("Total Avg: ", np.average(locmax_normed), "Stdev", np.std(locmax_normed))
+        for xarr in locmax_normed:
+            print(xarr, "", np.average(xarr))
+        # for xlt in locmax_lt:
+        #     print("Index: ", np.argmax(xlt), np.amax(xlt))
+        #     print(xlt)
+        nres_slicing(locmax_normed, rcindices_lt)
 
-    # stats_amavg = []
-    # for xavg in locmax_avgd:
-    #     print("Index: ", np.argmax(xavg), np.amax(xavg))
-    #     stats_amavg.append(np.amax(xavg))
-    #     print(xavg)
-    # print("Average/mean: ", np.average(stats_amavg), "Stdev: ", np.std(stats_amavg), "Variance: ", np.var(stats_amavg))
-
-    nres_slicing(locmax_normed, rcindices_lt)
+        # stats_amavg = []
+        # for xavg in locmax_avgd:
+        #     print("Index: ", np.argmax(xavg), np.amax(xavg))
+        #     stats_amavg.append(np.amax(xavg))
+        #     print(xavg)
+        # print("Average/mean: ", np.average(stats_amavg), "Stdev: ", np.std(stats_amavg), "Variance: ", np.var(stats_amavg))
 
 
 #>******************************************************************************
@@ -169,45 +163,81 @@ def nres_slicing(lmax_array, rowcol_inds):
     lmax_array - Contains the normalized maximum coefficient values computed for
     each subcell of main image
     rowcol_inds - List containing tuples of (height start, height end), (width"""
-
+    rcind = rowcol_inds[:]
     rows, cols = lmax_array.shape
     totavrg = np.average(lmax_array)
     totstdev = np.std(lmax_array)
     amax_arr = np.amax(lmax_array)
+    am_ind = np.argmax(lmax_array)
+    amax_ind = np.unravel_index(np.argmax(lmax_array, axis=None), (rows,cols))
+
+    print(amax_ind)
+    print(rcind[amax_ind[0]][amax_ind[1]])
     amax_stdev = amax_arr//totstdev
+    focus_rcinds = []
+    nw_inds = [0, 0]
+    ew_inds = [0, 0]
+    sw_inds = [0, 0]
+    se_inds = [0, 0]
+    ind_minr, ind_maxr, ind_minc, ind_maxc = 0, 0, 0, 0
+    if amax_ind[0] >= 1:
+        ind_minr = amax_ind[0]-1
+        if (amax_ind[0]+2) <= rows:
+            ind_maxr = amax_ind[0]+2
+        else:
+            ind_maxr = amax_ind[0]+1
+        # ind_minr, ind_maxr = amax_ind[0]-1, amax_ind[0]+2
+    else:
+        ind_minr = amax_ind[0]
+        if (amax_ind[0]+2) <= rows:
+            ind_maxr = amax_ind[0]+2
+        else:
+            ind_maxr = amax_ind[0]+1
 
-    goodrows = []
-    for rn in range(0, rows):
-        rnumavg = np.average(lmax_array[rn])
-        rowamax = np.amax(lmax_array[rn])
-        grow = []
-        if rnumavg < totavrg:
-            pass
-        elif rnumavg <= 0:
-            pass
-        elif rnumavg > totavrg:
-            if rowamax > totstdev + totavrg:
-                goodrows.append(lmax_array[rn])
-            elif rowamax > 2*totstdev:
-                goodrows.append(lmax_array[rn])
-            else:
-                pass
-        elif rnumavg < totavrg and rowamax > (totstdev + totavrg):
-            if rowamax > totstdev + totavrg:
-                goodrows.append(lmax_array[rn])
-            elif rowamax > 2*totstdev:
-                goodrows.append(lmax_array[rn])
-            else:
-                pass
-    print("")
-    for gr in goodrows:
-        # newgr = [ix = 0 for ix in gr if ix<=0
-        newgr = [(0 if ix<=0 else (ix if ix > 0) for ix in gr]
-
-        # ar = [('four' if i % 4 == 0 else ('six' if i % 6 == 0 else i)) for i in range(1, n)]
-
-        for gn in range(0, cols):
-            print(gr[gn])
+    if amax_ind[1] >= 1:
+        ind_minc = amax_ind[1]-1
+        if (amax_ind[1]+2)<=cols:
+            ind_maxc =  amax_ind[1]+2
+        else:
+            ind_maxc =  amax_ind[1]+1
+    else:
+        ind_minc = amax_ind[1]
+        if (amax_ind[1]+2)<=cols:
+            ind_maxc =  amax_ind[1]+2
+        else:
+            ind_maxc =  amax_ind[1]+1
+    # ind_minc, ind_maxc = amax_ind[1]-1, amax_ind[1]+2
+    print(ind_minr, ind_maxr)
+    print(ind_minc, ind_maxc)
+    for xr in range(ind_minr, ind_maxr):
+        tmp_row = []
+        for xc in range(ind_minc, ind_maxc):
+            # if xr==amax_ind[0] and xc==amax_ind[1]:
+            #     continue
+            # 5% error range from basic physics lab
+            if lmax_array[xr, xc] >= (totstdev-totstdev*0.05):
+                tmp_row.append(rcind[xr][xc])
+        focus_rcinds.append(tmp_row)
+    ''' building dim '''
+    # four corners
+    rowst, rowend = 0, 0
+    colst, colend = 0, 0
+    # rowst = focus_rcinds[0][0][0]
+    for rcx in focus_rcinds:
+        # print(rcx[0], "", rcx[-1])
+        if rcx[0][0][0] > 0 and rowst == 0:
+            rowst = rcx[0][0][0]
+        if rcx[0][1][0] > 0 and colst == 0:
+            colst = rcx[0][1][0]
+        if rcx[0][0][1] > rowend:
+            rowend = rcx[0][0][1]
+        if rcx[-1][1][1] > colend:
+            colend = rcx[-1][1][1]
+        # rowst, colst = rcx[0][0][0], rxc[0][1][0]
+        # print(rcx)
+    print(rowst, rowend)
+    print(colst, colend)
+return (rowst, rowend), (colst, colend)
 
 
 #>******************************************************************************
@@ -218,8 +248,6 @@ def get_npstats(np_onedarray):
     arr_amax = np.average(np_onedarray)
     arr_stdev = np.std(np_onedarray)
     return arr_avg, arr_amax, arr_stdev
-            # pass
-
 
 #>******************************************************************************
 def locmax_slicing(lmax_array, rowcol_inds):
@@ -262,11 +290,13 @@ def twod_slide_xcorr(islice, subimg):
     return np.amax(inv_prod.real)
 #     doplt(islice)
 
+
 #>******************************************************************************
 def twod_slide_xcorrfast(islice, simgfcon):
     img_product = fftpack.fft2(islice) * simgfcon
     inv_prod = fftpack.ifft2(img_product)
     return np.amax(inv_prod.real)
+
 
 #>******************************************************************************
 def oned_slide_xcor(mimg_dat, simg_dat, majx, minx, equald, ldirec):
@@ -353,7 +383,7 @@ def oned_slide_xcor(mimg_dat, simg_dat, majx, minx, equald, ldirec):
 # arg_lt = [timg1, timg2, timg3]
 # arg_lt = [timg1, timg2]
 # narg = [do_imgfft2(ix) for ix in arg_lt]
-# narg = [do_imzncc(ix) for ix in arg_lt]
+# narg = [do_imgzncc(ix) for ix in arg_lt]
 # barg = [do_znccfft2(ix) for ix in arg_lt]
 # acombs = list(itr.combinations(list(range(0,len(arg_lt))),2))
 # for ac in acombs:
@@ -371,50 +401,6 @@ def oned_slide_xcor(mimg_dat, simg_dat, majx, minx, equald, ldirec):
 #     xc2d = cor2d(bdat, bdat, mode='same')
 #     print(xc2d.max())
 #     doplt(bdat)
-
-def get_imgdata(imgx, imgy):
-
-    temp_list = []
-
-    reimgx = imread(imgx).astype(float)
-    reimgy = imread(imgy).astype(float)
-
-    hx, wx, chx = np.shape(reimgx)
-    print("Height: %s" % str(hx))
-    print("Width: %s" % str(wx))
-    print("BPP : %s " % str(chx))
-
-    hy, wy, chy = np.shape(reimgy)
-    print("Height: %s" % str(hy))
-    print("Width: %s" % str(wy))
-    print("BPP : %s " % str(chy))
-
-
-    # gscalex = sp.inner(reimgx, [299, 587, 114]) / 1000.0
-    gscalex = img_grayscale(reimgx)
-    gscaley = img_grayscale(reimgy)
-    ixfft = np.fft.fft2(gscalex)
-    iyfft = np.fft.fft2(gscaley)
-
-    exit()
-    # ixy_cor = ixfft * (iyfft.conj())
-    cc_image = np.fft.fftshift(np.fft.ifft2(ixy_cor))
-    print("CCorr n x n", ixy_cor.shape)
-    print("Cross Corr deg val: ", average(ixy_cor.real))
-    print("Imgx FFT: ", sys.getsizeof(ixfft))
-    print("Imgy FFT: ", sys.getsizeof(iyfft))
-
-
-def imgproc_fft(img_data):
-
-    pass
-
-def img_grayscale(imgarray):
-    # Do grayscale if img array is 3 dim
-    if len(imgarray.shape) == 3:
-        return average(imgarray, -1)
-    else:
-        return imgarray
 
 
 def realgray_shift(imgarray):
