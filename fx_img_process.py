@@ -30,7 +30,8 @@ def do_grayscale(imgarr):
 def do_imgznorm(ipath):
     """ imread image data and perform normalization """
     imgdata = ndimage.imread(ipath, flatten=True)
-    zndata = (imgdata - imgdata.mean())/ imgdata.std()
+    # zndata = (imgdata - imgdata.mean())/ imgdata.std()
+    zndata = (imgdata - imgdata.mean())
     return zndata
 
 def do_imgflipnorm(ipath):
@@ -89,7 +90,7 @@ def fft2_crosscorr(imgx, imgy):
         upperht, lowerht = 0, 0
         upperwd, lowerwd = 0, 0
 
-        subftconj = fftpack.fft2(imgy_dat).conj()
+        imgy_fft2c = fftpack.fft2(imgy_dat).conj()
         print("Ht",xht,yht," Wd", xwd, ywd)
         print("Stepht: ", stepht, "Stephwd: ", stepwd)
         """ Build the index - pixel loc matrix """
@@ -118,22 +119,22 @@ def fft2_crosscorr(imgx, imgy):
                 temp_dat = imgx_dat[lowerht:upperht, lowerwd:upperwd]
                 ''' try local normalization for temp image of large image '''
                 tempd_min = (temp_dat - temp_dat.mean())/ temp_dat.std()
-                locmax = twod_slide_xcorr(temp_dat, imgy_dat)
+                # locmax = twod_slide_xcorr(temp_dat, imgy_dat)
+                locmax = twod_slide_xcorrfast(temp_dat, imgy_fft2c)
                 locmaxfl = twod_slide_xcorr(temp_dat, imgy_flp)
-                locmaxnorm = twod_slide_xcorrfast(tempd_min, subftconj)
+                # locmaxnorm = twod_slide_xcorrfast(tempd_min, imgy_fft2c)
                 rowstr = str(lowerht) + ":" + str(upperht)
                 colstr = str(lowerwd) + ":" + str(upperwd)
                 # print("Indices", rowstr, colstr, " LocMax: ", locmax)
-                temp_lt.append(int(locmax))
-                tmin_lt.append(int(locmaxnorm))
+                temp_lt.append(locmax)
+                # tmin_lt.append(int(locmaxnorm))
             rcindices_lt.append(tm_rcinds)
             locmax_lt.append(temp_lt)
             # locnmax_lt.append(tmin_lt)
         locmax_arr = np.asarray(locmax_lt)
         # print(locmax_arr.shape)
         # print(locmax_arr)
-        # print(np.std(locmax_arr))
-
+        print(np.mean(locmax_arr), np.average(locmax_arr))
         locmax_normed = (locmax_arr - locmax_arr.mean()) / (np.std(locmax_arr)/2)
         # locmax_normed = locmax_normed.astype(int
         print(np.mean(locmax_normed), np.average(locmax_normed))
@@ -146,8 +147,9 @@ def fft2_crosscorr(imgx, imgy):
         # for xlt in locmax_lt:
         #     print("Index: ", np.argmax(xlt), np.amax(xlt))
         #     print(xlt)
-        nres_slicing(locmax_normed, rcindices_lt)
+        rowstup, colstup = nres_slicing(locmax_normed, rcindices_lt)
 
+        return rowstup, colstup
         # stats_amavg = []
         # for xavg in locmax_avgd:
         #     print("Index: ", np.argmax(xavg), np.amax(xavg))
@@ -237,7 +239,7 @@ def nres_slicing(lmax_array, rowcol_inds):
         # print(rcx)
     print(rowst, rowend)
     print(colst, colend)
-return (rowst, rowend), (colst, colend)
+    return (rowst, rowend), (colst, colend)
 
 
 #>******************************************************************************

@@ -31,13 +31,15 @@ import fx_img_process
 
 #>******************************************************************************
 def main(imgpath_x, imgpath_y):
+
+    rowinds, colinds = 0, 0
     if checkfile(imgpath_x):
         if checkfile(imgpath_y):
             areax, areay = ret_imgarea(imgpath_x), ret_imgarea(imgpath_y)
             if areax > areay:
-                fx_img_process.fft2_crosscorr(imgpath_x, imgpath_y)
+                rowinds, colinds = fx_img_process.fft2_crosscorr(imgpath_x, imgpath_y)
             elif areax < areay:
-                fx_img_process.fft2_crosscorr(imgpath_y, imgpath_x)
+                rowinds, colinds = fx_img_process.fft2_crosscorr(imgpath_y, imgpath_x)
             else:
                 pass
         else:
@@ -80,18 +82,20 @@ def test_main(image_lt):
     ifdat_lt = [do_imgzncc(ix) for ix in image_lt]
     area_lt = [ret_imgarea(ix) for ix in ifdat_lt]
     acombs = list(itr.combinations(list(range(0,len(image_lt))),2))
+
+    rowinds, colinds = 0, 0
     for x in acombs:
         if x[0] == 0 or x[0] == 1:
             if area_lt[x[0]] > area_lt[x[1]]:
                 print("Img 1 is bigger")
-                fx_img_process.fft2_crosscorr(ifdat_lt[x[0]], ifdat_lt[x[1]])
+                # fx_img_process.fft2_crosscorr(ifdat_lt[x[0]], ifdat_lt[x[1]])
+                rowinds, colinds = fx_img_process.fft2_crosscorr(image_lt[x[0]], image_lt[x[1]])
             elif area_lt[x[0]] < area_lt[x[1]]:
                 print("Img 2 is bigger")
-                fx_img_process.fft2_crosscorr(ifdat_lt[x[1]], ifdat_lt[x[0]])
+                rowinds, colinds = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])
                 # pass
             elif area_lt[x[0]] == area_lt[x[1]]:
                 print("same size...")
-            # fft2_crosscor(narg[x[0]],narg[x[1]])
 
 
 #>******************************************************************************
