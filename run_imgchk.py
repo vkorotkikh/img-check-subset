@@ -56,6 +56,11 @@ def do_imgtrueflat(ipath):
     return idata
 
 #>******************************************************************************
+def do_imgdata(ipath):
+    """ Using scipy.ndimage to parse in image as RGB and return this data """
+    return ndimage.imread(ipath, mode='RGB')
+
+#>******************************************************************************
 def do_imgzncc(ipath):
     """ normalize the data before doing cross-correlation calculations """
     imgdata = do_imgtrueflat(ipath)
@@ -66,13 +71,6 @@ def do_imgzncc(ipath):
 def do_imgfft2(ipath):
     imgdata = do_imgtrueflat(ipath)
     fft2dat = fftpack.fft2(imgdata)
-    return fft2dat
-
-#>******************************************************************************
-def do_znccfft2(ipath):
-    imgdata = do_imgtrueflat(ipath)
-    zndata = (imgdata - imgdata.mean())/ imgdata.std()
-    fft2dat = fftpack.fft2(zndata)
     return fft2dat
 
 #>******************************************************************************
@@ -113,6 +111,7 @@ def test_imgfeed(testpath=""):
     timg2 = timgpath + 'jc8slice8.jpg'
     timg3 = timgpath + 'jc8slice8cut.jpg'
     timg4 = timgpath + 'jc8piece.jpg'
+    tdiff1 = timgpath + 'wpKMy-minic.jpg'
 
     # return [timg1, timg2, timg3, timg4]
     return [timg1, timg3]

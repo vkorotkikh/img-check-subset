@@ -30,10 +30,11 @@ def do_grayscale(imgarr):
 def do_imgznorm(ipath):
     """ imread image data and perform normalization """
     imgdata = ndimage.imread(ipath, flatten=True)
-    # zndata = (imgdata - imgdata.mean())/ imgdata.std()
-    zndata = (imgdata - imgdata.mean())
+    zndata = (imgdata - imgdata.mean())/ imgdata.std()
+    # zndata = (imgdata - imgdata.mean())
     return zndata
 
+#>******************************************************************************
 def do_imgflipnorm(ipath):
     imgdata = ndimage.imread(ipath, flatten=True)
     dataflip = np.flipud(imgdata)
@@ -41,17 +42,13 @@ def do_imgflipnorm(ipath):
     return zndata
 
 #>******************************************************************************
-def doplt(ifftdata):
-#     plt.imshow(20*np.log10(abs(ifftdata)))
-    from matplotlib.colors import LogNorm
-    plt.figure(figsize=(8, 6), dpi=80)
-    plt.imshow(np.abs(ifftdata), norm=LogNorm(vmin=2))
-#     plt.colorbar()
-    plt.show()
-
-#>******************************************************************************
 def fft2_crosscorr(imgx, imgy):
-    """ Assume imgx_dat is always going to be the bigger image, area wise"""
+    """ Assume imgx_dat is always going to be the bigger image, area wise
+    imgx - filepath for larger imagex
+    imgy - filepath for smaller imagey """
+    '''format float output from calc '''
+    np.set_printoptions(precision=2, linewidth=90, suppress=True)
+
     imgx_dat = do_imgznorm(imgx)
     imgy_dat = do_imgznorm(imgy)
     imgy_flp = do_imgflipnorm(imgy)
@@ -66,11 +63,8 @@ def fft2_crosscorr(imgx, imgy):
     divnum = 0
     mulfact = 4
     upperb, lowerb = 0, 0
-    '''format float output from calc '''
-    # float_formatter = lambda x: "%.2f" % x
-    np.set_printoptions(precision=2, linewidth=90, suppress=True)
     locmax_lt = []
-    locnmax_lt = []
+    locflip_lt = [] # For storring flip comparison values
     if xht > yht and xwd == ywd: # loop over rows
         loc_lt = oned_slide_xcor(imgx_dat, imgy_dat, xht, yht, xwd, 'rows')
         for xloc in loc_lt:
@@ -90,16 +84,16 @@ def fft2_crosscorr(imgx, imgy):
         upperht, lowerht = 0, 0
         upperwd, lowerwd = 0, 0
 
-        imgy_fft2c = fftpack.fft2(imgy_dat).conj()
+        imgy_fftc = fftpack.fft2(imgy_dat).conj()
+        imgyfl_fftc = fftpack.fft2(imgy_flp).conj()
         print("Ht",xht,yht," Wd", xwd, ywd)
         print("Stepht: ", stepht, "Stephwd: ", stepwd)
         """ Build the index - pixel loc matrix """
         rcindices_lt = []
         for ih in range(0, divnumh):
-            ''' Do stepsize everywhere, so stepht instead yht and ... '''
             tm_rcinds = []
-            temp_lt = []
-            tmin_lt = []
+            orig_lt = []
+            flip_lt = []
             if (ih*stepht + yht) < xht:
                 upperht = ih*stepht + yht
                 lowerht = ih*stepht
@@ -118,44 +112,40 @@ def fft2_crosscorr(imgx, imgy):
                 tm_rcinds.append(((lowerht, upperht), (lowerwd, upperwd)))
                 temp_dat = imgx_dat[lowerht:upperht, lowerwd:upperwd]
                 ''' try local normalization for temp image of large image '''
-                tempd_min = (temp_dat - temp_dat.mean())/ temp_dat.std()
                 # locmax = twod_slide_xcorr(temp_dat, imgy_dat)
-                locmax = twod_slide_xcorrfast(temp_dat, imgy_fft2c)
-                locmaxfl = twod_slide_xcorr(temp_dat, imgy_flp)
-                # locmaxnorm = twod_slide_xcorrfast(tempd_min, imgy_fft2c)
-                rowstr = str(lowerht) + ":" + str(upperht)
-                colstr = str(lowerwd) + ":" + str(upperwd)
+                locmax = twod_slide_xcorrfast(temp_dat, imgy_fftc)
+                # locmaxfl = twod_slide_xcorr(temp_dat, imgy_flp)
+                locmaxfl = twod_slide_xcorrfast(temp_dat, imgyfl_fftc)
                 # print("Indices", rowstr, colstr, " LocMax: ", locmax)
-                temp_lt.append(locmax)
-                # tmin_lt.append(int(locmaxnorm))
+                orig_lt.append(locmax)
+                flip_lt.append(locmaxfl)
             rcindices_lt.append(tm_rcinds)
-            locmax_lt.append(temp_lt)
-            # locnmax_lt.append(tmin_lt)
+            locmax_lt.append(orig_lt)
+            locflip_lt.append(flip_lt)
+
         locmax_arr = np.asarray(locmax_lt)
-        # print(locmax_arr.shape)
-        # print(locmax_arr)
+        locflp_arr = np.asarray(locflip_lt)
         print(np.mean(locmax_arr), np.average(locmax_arr))
+        ''' Normalize the result cross correlation matrix for original subim '''
         locmax_normed = (locmax_arr - locmax_arr.mean()) / (np.std(locmax_arr)/2)
-        # locmax_normed = locmax_normed.astype(int
+        ''' Normalize the result cross correlation matrix for flip subimage '''
+        locmflip_norm = (locflp_arr - locflp_arr.mean()) / (np.std(locflp_arr)/2)
         print(np.mean(locmax_normed), np.average(locmax_normed))
         print("")
-        locmax_avgd = (locmax_arr / locmax_arr.mean())
-        locmax_avgd.astype(int)
         print("Total Avg: ", np.average(locmax_normed), "Stdev", np.std(locmax_normed))
         for xarr in locmax_normed:
             print(xarr, "", np.average(xarr))
-        # for xlt in locmax_lt:
-        #     print("Index: ", np.argmax(xlt), np.amax(xlt))
-        #     print(xlt)
-        rowstup, colstup = nres_slicing(locmax_normed, rcindices_lt)
+        print("")
+        print("Total Avg: ", np.average(locmflip_norm), "Stdev", np.std(locmflip_norm))
+        for xfl in locmflip_norm:
+            print(xfl,"", np.average(xfl))
+        maxvloc, rowstup, colstup = nres_slicing(locmax_normed, rcindices_lt)
+        maxfloc, rowsflp, colsflip = nres_slicing(locmflip_norm, rcindices_lt)
 
-        return rowstup, colstup
-        # stats_amavg = []
-        # for xavg in locmax_avgd:
-        #     print("Index: ", np.argmax(xavg), np.amax(xavg))
-        #     stats_amavg.append(np.amax(xavg))
-        #     print(xavg)
-        # print("Average/mean: ", np.average(stats_amavg), "Stdev: ", np.std(stats_amavg), "Variance: ", np.var(stats_amavg))
+        minrgb = do_focusarea_acq(imgx, imgy, maxvloc, (rowstup, colstup))
+        minrgbflip = do_focusarea_acq(imgx, imgy, maxfloc, (rowsflp, colsflip), "flip")
+        # return rowstup, colstup
+
 
 
 #>******************************************************************************
@@ -170,17 +160,19 @@ def nres_slicing(lmax_array, rowcol_inds):
     totavrg = np.average(lmax_array)
     totstdev = np.std(lmax_array)
     amax_arr = np.amax(lmax_array)
-    am_ind = np.argmax(lmax_array)
+    # am_ind = np.argmax(lmax_array)
+    nlarge = np.partition(lmax_array.flatten(), -2)[-2]
     amax_ind = np.unravel_index(np.argmax(lmax_array, axis=None), (rows,cols))
-
-    print(amax_ind)
+    actmax_pixel = rcind[amax_ind[0]][amax_ind[1]]
+    print("2nd", nlarge)
+    print("Amax index:", amax_ind)
     print(rcind[amax_ind[0]][amax_ind[1]])
-    amax_stdev = amax_arr//totstdev
+    # amax_stdev = amax_arr//totstdev
     focus_rcinds = []
-    nw_inds = [0, 0]
-    ew_inds = [0, 0]
-    sw_inds = [0, 0]
-    se_inds = [0, 0]
+    # nw_inds = [0, 0]
+    # ew_inds = [0, 0]
+    # sw_inds = [0, 0]
+    # se_inds = [0, 0]
     ind_minr, ind_maxr, ind_minc, ind_maxc = 0, 0, 0, 0
     if amax_ind[0] >= 1:
         ind_minr = amax_ind[0]-1
@@ -219,9 +211,12 @@ def nres_slicing(lmax_array, rowcol_inds):
             # 5% error range from basic physics lab
             if lmax_array[xr, xc] >= (totstdev-totstdev*0.05):
                 tmp_row.append(rcind[xr][xc])
-        focus_rcinds.append(tmp_row)
-    ''' building dim '''
-    # four corners
+        if tmp_row:
+            focus_rcinds.append(tmp_row)
+    ''' building total dimensions of focus area where subimage is most likely
+        to be located '''
+    for xrc in focus_rcinds:
+        print(xrc)
     rowst, rowend = 0, 0
     colst, colend = 0, 0
     # rowst = focus_rcinds[0][0][0]
@@ -239,8 +234,103 @@ def nres_slicing(lmax_array, rowcol_inds):
         # print(rcx)
     print(rowst, rowend)
     print(colst, colend)
-    return (rowst, rowend), (colst, colend)
+    return actmax_pixel, (rowst, rowend), (colst, colend)
 
+#>******************************************************************************
+def do_focusarea_acq(imgx, imgy, maxinds, imgx_bounds, orient=""):
+    """ Final search algorithm over predetermined area where subimage is most
+    likely to be located    """
+    np.set_printoptions(precision=2, linewidth=90, suppress=True)
+    rowadj = 0
+    coladj = 0
+    print("Imgx focus area", imgx_bounds, "Maxinds", maxinds)
+    imgx_dat = ndimage.imread(imgx)
+    imgy_dat = ndimage.imread(imgy)
+    if orient=="flip":
+        imgy_dat = np.flipud(imgy_dat)
+    yrow, ycol, rgbval = imgy_dat.shape
+    rowst, rowend = imgx_bounds[0]
+    colst, colend = imgx_bounds[1]
+    imgx_spec = imgx_dat[rowst:(rowend+rowadj), colst:(colend+coladj)]
+    mxrows = maxinds[0]
+    mxcols = maxinds[1]
+    adjxrows = (mxrows[0] - rowst, mxrows[1] - rowst)
+    adjxcols = (mxcols[0] - colst, mxcols[1] - colst)
+    print("Adj", adjxrows, adjxcols)
+    print(imgx_spec.shape)
+    # print(imgx_spec[0,0])
+    # print(imgx_spec[0,0:5])
+    imgyb, imgyg, imgyr = imgy_dat[:, :, 0], imgy_dat[:, :, 1], imgy_dat[:, :, 2] # For RGB image
+    for c in range(0,3):
+        tmp_im = np.zeros(imgx_spec.shape, dtype="uint8")
+        tmp_imy = np.zeros(imgy_dat.shape, dtype="uint8")
+        tmp_im[:,:,c] = imgx_spec[:,:,c]
+        # imgy_dat[:,:,c] = (imgy_dat[:,:,c] - imgy_dat[:,:,c].mean())/np.std(imgy_dat[:,:,c])
+        # imgx_spec[:,:,c] = (imgx_spec[:,:,c] - imgx_spec[:,:,c].mean())/np.std(imgx_spec[:,:,c])
+
+    row_range, col_range = [], []
+    rowrlol = imgx_spec.shape[0] - imgy_dat.shape[0]
+    colrlol = imgx_spec.shape[1] - imgy_dat.shape[1]
+    if rowrlol > 0:
+        row_range = list(range(0,(imgx_spec.shape[0] - imgy_dat.shape[0]),2))
+    else:
+        row_range = range(0, 1)
+    if colrlol > 0:
+        col_range = list(range(0,(imgx_spec.shape[1] - imgy_dat.shape[1]),2))
+    else:
+        col_range = range(0, 1)
+    mse_ablue = []
+    mse_ared = []
+    mse_agre = []
+    print(rowrlol, colrlol)
+    for xr in row_range:
+        rowend = yrow + xr
+        # if xr > 10:
+        #     exit()
+        mse_tb = []
+        mse_tr = []
+        mse_tg = []
+        for xc in col_range:
+            colend = ycol + xc
+            loc_ispecx = imgx_spec[xr:rowend, xc:colend]
+            mse_blue = do_mse(loc_ispecx[:,:,0], imgyb)
+            mse_gre = do_mse(loc_ispecx[:,:,1], imgyg)
+            mse_red = do_mse(loc_ispecx[:,:,2], imgyr)
+            mse_tb.append(mse_blue)
+            mse_tr.append(mse_red)
+            mse_tg.append(mse_gre)
+            # print("Imgx Var", np.var(loc_ispecx[:,:,0]), "Std", np.std(loc_ispecx[:,:,0]), "Avg", np.mean(loc_ispecx[:,:,0])) # b
+            # print("Imgx Var", np.var(loc_ispecx[:,:,1]), "Std", np.std(loc_ispecx[:,:,1]), "Avg", np.mean(loc_ispecx[:,:,1])) # g
+            # print("Imgx Var", np.var(loc_ispecx[:,:,2]), "Std", np.std(loc_ispecx[:,:,2]), "Avg", np.mean(loc_ispecx[:,:,2])) # r
+        mse_ablue.append(mse_tb)
+        mse_ared.append(mse_tr)
+        mse_agre.append(mse_tg)
+    npar_blue = np.asarray(mse_ablue)
+    npar_green = np.asarray(mse_agre)
+    npar_red = np.asarray(mse_ared)
+    # for xar in npar_blue:
+    #     print(xar)
+    # print("")
+    # for xgre in npar_green:
+    #     print(xgre)
+    # print("")
+    # for xar in npar_red:
+    #     print(xar)
+    mse_allshp = npar_blue.shape
+    nminblue, nmingreen, nminred = np.min(npar_blue), np.min(npar_green), np.min(npar_red)
+    print(nminblue, np.unravel_index(np.argmin(npar_blue, axis=None), mse_allshp))
+    print(nmingreen, np.unravel_index(np.argmin(npar_green, axis=None), mse_allshp))
+    print(nminred, np.unravel_index(np.argmin(npar_red, axis=None), mse_allshp))
+    return nminblue, nmingreen, nminred
+
+#>******************************************************************************
+def do_mse(imageA, imageB):
+	# the 'Mean Squared Error' between the two images is the
+	# sum of the squared difference between the two images;
+	err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
+	err /= float(imageA.shape[0] * imageA.shape[1])
+
+	return err
 
 #>******************************************************************************
 def get_npstats(np_onedarray):
@@ -250,38 +340,6 @@ def get_npstats(np_onedarray):
     arr_amax = np.average(np_onedarray)
     arr_stdev = np.std(np_onedarray)
     return arr_avg, arr_amax, arr_stdev
-
-#>******************************************************************************
-def locmax_slicing(lmax_array, rowcol_inds):
-    """ Using the result values to cut up the original image into individual
-    elements for more indepth subimage localization """
-    print(type(lmax_array), "", lmax_array.shape)
-    rows, cols = lmax_array.shape
-    tmp_lmax = lmax_array.copy()
-
-    newslice_lt = []
-    tmp_hold = []
-
-    for rn in range(0, rows):
-
-        temp_s = []
-        for cn in range(0, cols):
-            if rn==0:
-                if tmp_lmax[rn, cn] > 0:
-                    temp_s.append((rowcol_inds[0][rn], rowcol_inds[1][cn]))
-                    if (cn+1) < cols and tmp_lmax[rn, cn+1] > 0:
-                        pass
-                    else:
-                        tmp_hold.append(temp_s)
-                        temp_s = []
-                else:
-                    pass
-            elif rn>0:
-                if tmp_lmax[rn, cn] > 0:
-                    if tmp_lmax[rn-1, cn] > 0:
-                        pass
-                else:
-                    pass
 
 
 #>******************************************************************************
@@ -341,70 +399,6 @@ def oned_slide_xcor(mimg_dat, simg_dat, majx, minx, equald, ldirec):
 
 
 #>******************************************************************************
-    # divn = 4*(ixd[0]//iyd[0])
-    # stepd = int(ixd[0]/divn)
-    #
-    # for i in range(0, divn):
-    #     highs = 0
-    #     if i*stepd + iyd[0] < ixd[0]:
-    #         highs = i*stepd + iyd[0]
-    #         mins = i*stepd
-    #     else:
-    #         highs = ixd[0]
-    #         mins = ixd[0] - iyd[0]
-    #     ixloc = imgx_dat[mins:highs][:]
-    #     print(ixloc.shape)
-    #     img_product = fftpack.fft2(ixloc) * fftpack.fft2(imgy_dat).conj()
-    #     t_prod = fftpack.fft(np.transpose(ixloc))*fftpack.fft2(np.transpose(imgy_dat)).conj()
-    #     cc_tprod = fftpack.ifft2(t_prod)
-    #     cc_image = fftpack.ifft2(img_product)
-    #     cc_image.shape
-    #     print(np.argmax(cc_image), np.argmax(cc_tprod))
-    #     doplt(ixloc)
-    #     doplt(cc_image)
-    # if xarea > yarea:
-    #     if ixd[0] > iyd[0]:
-    #         if ixd[1] == iyd[1]:
-    #             pass
-    #         else:
-    #             pass
-    #     elif ixd[1] > iyd[1]:
-    #         pass
-#     img_product = fftpack.fft2(imgx_dat) * fftpack.fft2(imgy_dat).conj()
-#     cc_image = fftpack.ifft2(img_product)
-#     cc_image.shape()
-#     image_product = np.fft.fft2(image) * np.fft.fft2(offset_image).conj()
-
-
-
-# timgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/Testing/"
-# timg1 = timgpath + 'jesusc8.jpg'
-# timg2 = timgpath + 'jc8slice8.jpg'
-# timg3 = timgpath + 'jc8slice8cut.jpg'
-#
-# arg_lt = [timg1, timg2, timg3]
-# arg_lt = [timg1, timg2]
-# narg = [do_imgfft2(ix) for ix in arg_lt]
-# narg = [do_imgzncc(ix) for ix in arg_lt]
-# barg = [do_znccfft2(ix) for ix in arg_lt]
-# acombs = list(itr.combinations(list(range(0,len(arg_lt))),2))
-# for ac in acombs:
-#     fft2_croscor(narg[ac[0]],narg[ac[1]])
-
-
-# for xdat in narg:
-#     xc2d = cor2d(xdat, xdat, mode='same')
-#     print(xc2d.max())
-#     xdot = np.dot(xdat, xdat.T)
-#     print(np.average(np.abs(xdot)))
-#     doplt(xdat)
-
-# for bdat in barg:
-#     xc2d = cor2d(bdat, bdat, mode='same')
-#     print(xc2d.max())
-#     doplt(bdat)
-
-
 def realgray_shift(imgarray):
 
     if len(imgarray.shape) == 3:
