@@ -34,17 +34,40 @@ import fx_img_process
 #>******************************************************************************
 def main(imgpath_x, imgpath_y):
     """ Check if files exist and then pass images ordered by size """
-    rowinds, colinds = 0, 0
+
     if checkfile(imgpath_x):
         if checkfile(imgpath_y):
-            areax, areay = ret_imgarea(imgpath_x), ret_imgarea(imgpath_y)
-            if areax > areay:
-                results_dict = fx_img_process.fft2_crosscorr(imgpath_x, imgpath_y)
-                # fx_img_process.fft2_crosscorr(imgpath_x, imgpath_y)
-            elif areax < areay:
-                results_dict = fx_img_process.fft2_crosscorr(imgpath_y, imgpath_x)
-                # fx_img_process.fft2_crosscorr(imgpath_y, imgpath_x)
+            areax, xrow, xcol = ret_imgarea(imgpath_x)
+            areay, yrow, ycol = ret_imgarea(imgpath_y)
+            imgnamex = os.path.basename(imgpath_x)
+            imgnamey = os.path.basename(imgpath_y)
+            print("Checking %s and %s" % (imgnamex, imgnamey))
+            if areax>areay and xrow>=yrow and xcol>ycol or (areax>areay and xrow>yrow and xcol>=ycol):
+                res_tup, final_rc, stat_str = fx_img_process.fft2_crosscorr(imgpath_x, imgpath_y)
+                imgtype = res_tup[0]
+                if stat_str=="True":
+                    if imgtype=="Orig":
+                        print("%s is a subimage of %s " % (imgnamey, imgnamex))
+                        print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
+                    elif imgtype=="Flip":
+                        print("%s is a flipped subimage of %s " % (imgnamey, imgnamex))
+                        print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
+                elif stat_str=="False":
+                    print(" %s is not a subimage of %s" % (imgnamey, imgnamex))
+            elif areax<areay and xrow<=yrow and xcol<ycol or (areax<areay and xrow<yrow and xcol<=ycol):
+                res_tup, final_rc, stat_str = fx_img_process.fft2_crosscorr(imgpath_y, imgpath_x)
+                imgtype = res_tup[0]
+                if stat_str=="True":
+                    if imgtype=="Orig":
+                        print("%s is a subimage of %s " % (imgnamex, imgnamey))
+                        print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
+                    elif imgtype=="Flip":
+                        print(" %s is a a flipped subimage of %s " % (imgnamex, imgnamey))
+                        print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
+                elif stat_str=="False":
+                    print(" %s is not a subimage of %s" % (imgnamex, imgnamey))
             else:
+                sys.exit("Images uncomparable due to mismatched row/column dimensions") 
                 pass
         else:
             sys.exit("Image file DNE")
@@ -87,14 +110,38 @@ def test_main(image_lt):
     rowinds, colinds = 0, 0
     for x in acombs:
         if x[0] == 0 or x[0] == 1:
+            imgnamex = os.path.basename(image_lt[x[0]])
+            imgnamey = os.path.basename(image_lt[x[1]])
             if area_lt[x[0]] > area_lt[x[1]]:
-                print("Img 1 is bigger")
-                results_dict = fx_img_process.fft2_crosscorr(image_lt[x[0]], image_lt[x[1]])
-                # rowinds, colinds = fx_img_process.fft2_crosscorr(image_lt[x[0]], image_lt[x[1]])
+                print("%s is larger." % imgnamex)
+                # results_dict = fx_img_process.fft2_crosscorr(image_lt[x[0]], image_lt[x[1]])
+                res_tup, final_rc, stat_str = fx_img_process.fft2_crosscorr(image_lt[x[0]], image_lt[x[1]])
+                imgtype = res_tup[0]
+                # print("imgtype: ", imgtype)
+                if stat_str=="True":
+                    if imgtype=="Orig":
+                        print("%s is a subimage of %s " % (imgnamey, imgnamex))
+                        print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
+                    elif imgtype=="Flip":
+                        print("%s is a flipped subimage of %s " % (imgnamey, imgnamex))
+                        print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
+                elif stat_str=="False":
+                    print("%s is not a subimage of %s" % (imgnamey, imgnamex))
             elif area_lt[x[0]] < area_lt[x[1]]:
-                print("Img 2 is bigger")
-                results_dict = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])
-                # rowinds, colinds = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])
+                print("%s is larger." % imgnamey)
+                # results_dict = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])
+                res_tup, final_rc, stat_str = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])
+                imgtype = res_tup[0]
+                # print("imgtype: ", imgtype)
+                if stat_str=="True":
+                    if imgtype=="Orig":
+                        print("%s is a subimage of %s " % (imgnamex, imgnamey))
+                        print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
+                    elif imgtype=="Flip":
+                        print("%s is a a flipped subimage of %s " % (imgnamex, imgnamey))
+                        print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
+                elif stat_str=="False":
+                    print("%s is not a subimage of %s" % (imgnamex, imgnamey))
             elif area_lt[x[0]] == area_lt[x[1]]:
                 print("same size...")
 
@@ -104,8 +151,13 @@ def ret_imgarea(imgarg):
     """ Use scipy imread to get flattened/grayscale image data and calculate
     image area using row-col values from .shape """
     # img_dat = imread(imgpath, flatten=True)
-    irow, icol = imgarg.shape
-    return irow*icol
+    irow, icol = 0, 0
+    if isinstance(imgarg, str):
+        img_dat = ndimage.imread(imgarg, flatten=True)
+        irow,icol = img_dat.shape
+    else:
+        irow, icol = imgarg.shape
+    return irow*icol, irow, icol
 
 #>******************************************************************************
 def test_imgfeed(testpath=""):
@@ -117,7 +169,7 @@ def test_imgfeed(testpath=""):
     tdiff1 = timgpath + 'wpKMy-minic.jpg'
 
     # return [timg1, timg2, timg3, timg4]
-    return [timg1, timg3]
+    return [[timg1, timg2], [timg1, timg3], [timg1, timg4], [timg1, tdiff1]]
 
 #>******************************************************************************
 def test_bigimg(testpath=""):
@@ -130,7 +182,7 @@ def test_bigimg(testpath=""):
 
     if os.path.isdir((exedirpath + "/LgTesting")):
         lgimgpath =  exedirpath + "/LgTesting/"
-    print(lgimgpath)
+    # print(lgimgpath)
     # lgimgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/LgTesting/"
     limg1 = "04041_mountrainier_2880x1800.jpg"
     limg1c = "04041_mountrainier_smcut.jpg"
@@ -138,7 +190,7 @@ def test_bigimg(testpath=""):
     limg2c = "AJkBi5n_smcut.jpg"
     img_lt = [lgimgpath + xg for xg in [limg1, limg1c]]
     img_lt2 = [lgimgpath + xg for xg in [limg2, limg2c]]
-    return img_lt2
+    return [img_lt, img_lt2]
 
 #>******************************************************************************
 def checkfile(ifilepath):
@@ -154,8 +206,13 @@ if __name__ == "__main__":
     try:
         main(sys.argv[1], sys.argv[2])
     except IndexError:
-        timg_lt = test_bigimg()
-        if len(timg_lt) > 0:
-            test_main(timg_lt)
-        else:
-            sys.exit("Two Terminal arguments are required")
+        try:
+            test_main(sys.argv[1])
+        except IndexError:
+            timg_lt = test_imgfeed()
+            if len(timg_lt) > 0:
+                if isinstance(timg_lt[0], list):
+                    for lt in timg_lt:
+                        test_main(lt)
+            else:
+                sys.exit("Two Terminal arguments are required")

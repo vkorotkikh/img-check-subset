@@ -12,7 +12,7 @@ import sys, time
 import numpy as np
 import scipy as sp
 import itertools as itr
-from pprint import pprint
+# from pprint import pprint
 from scipy import fftpack, ndimage
 from scipy.misc import imread
 from scipy.signal.signaltools import correlate2d as cor2d
@@ -144,17 +144,15 @@ def fft2_crosscorr(imgx, imgy):
         minb, ming, minr = do_focusarea_acq(imgx, imgy, maxvloc, (rowstup, colstup))
         loc_results['Orig'].append((int(minb[0]+ming[0]+minr[0]),minb, ming,minr))
 
-    print("Testing xcorr_sortresfl_lt")
+    # print("Testing xcorr_sortresfl_lt")
     for flsort in xcorr_sortresfl_lt:
         maxvloc, rowstup, colstup = flsort[0], flsort[1], flsort[2]
         minb, ming, minr = do_focusarea_acq(imgx, imgy, maxvloc, (rowstup, colstup), "flip")
         loc_results['Flip'].append((int(minb[0]+ming[0]+minr[0]),minb,ming,minr))
 
-    resdict_processed = do_indexloc_preprocess(loc_results)
-    return resdict_processed
-        # minrgb = do_focusarea_acq(imgx, imgy, maxvloc, (rowstup, colstup))
-        # minrgbflip = do_focusarea_acq(imgx, imgy, maxfloc, (rowsflp, colsflip), "flip")
-        # return rowstup, colstup
+    resprocessed_tup, rowcol_final, stat_str = do_indexloc_preprocess(loc_results)
+    return resprocessed_tup, rowcol_final, stat_str
+
 
 
 #>******************************************************************************
@@ -174,7 +172,6 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=10):
     # totavrg = np.average(lmax_array)
     lmax_stdev = np.std(lmax_array)
     abmax_val = np.amax(lmax_array)
-    print("Lmax stdev: ", lmax_stdev)
     maxval_lt = []
     for iv in range(0, nmax):
         tmp_maxval = np.partition(lmax_array.flatten(), -2)[-iv-1]
@@ -182,7 +179,7 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=10):
             ind_tup = np.unravel_index(np.argmax(lmax_array, axis=None), (rows,cols))
             maxval_lt.append((tmp_maxval, ind_tup))
         elif maxval_lt:
-            if tmp_maxval >= (maxval_lt[0][0] - (3*lmax_stdev)):
+            if tmp_maxval >= (maxval_lt[0][0] - (lmax_stdev)) and tmp_maxval > 0:
                 val_row, val_col = np.where(lmax_array==tmp_maxval)
                 prow_rng = range(val_row[0]-1, val_row[0]+2)
                 pcol_rng = range(val_col[0]-1, val_col[0]+2)
@@ -195,17 +192,24 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=10):
                     continue
                 else:
                     maxval_lt.append((tmp_maxval, (val_row[0], val_col[0])))
-    print("MaxVal")
-    print(maxval_lt)
-    # for im in maxval_lt:
-    #     val_row, val_col = np.where(lmax_array==im)
-    #     mod_maxval_lt.append((im, (val_row[0], val_col[0])))
+            elif tmp_maxval >= (maxval_lt[0][0] - (2*lmax_stdev)) and tmp_maxval > 0:
+                val_row, val_col = np.where(lmax_array==tmp_maxval)
+                prow_rng = range(val_row[0]-1, val_row[0]+2)
+                pcol_rng = range(val_col[0]-1, val_col[0]+2)
+                row_lt, col_lt = [], []
+                for exv in maxval_lt:
+                    # erow, ecol = exv[1][0], exv[1][1]
+                    row_lt.append(exv[1][0]) # row index value (0 to maxrow)
+                    col_lt.append(exv[1][1]) # col index value (0 to maxcol)
+                if any(ir in prow_rng for ir in row_lt) and any(ic in pcol_rng for ic in col_lt):
+                    continue
+                else:
+                    maxval_lt.append((tmp_maxval, (val_row[0], val_col[0])))
 
     absmax_val = np.partition(lmax_array.flatten(), -2)[-2]
     abthrd_val = np.partition(lmax_array.flatten(), -2)[-3]
     amax_ind = np.unravel_index(np.argmax(lmax_array, axis=None), (rows,cols))
     # print("Maximum value", abmax_val, "Type lmax_arra:", type(lmax_array))
-    print("Amax index:", amax_ind)
     gslice_lt = []
     for mvtup in maxval_lt:
         gslice_res = xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvtup)
@@ -218,7 +222,7 @@ def xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvaltup):
     """ Using the found top 2-3 values slice up the result matrix grid for each
     one, mapping out the pixel size of the most probable subimage location for
     each value """
-    print("Running xcorr_resgrid_slicing")
+
     rows, cols = lmax_array.shape
     focus_rcinds = []
     tmax_val = mvaltup[0]
@@ -226,7 +230,7 @@ def xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvaltup):
     lmax_stdev = np.std(lmax_array)
     rcind = rowcol_inds[:]
     actmval_pixel = rcind[amax_ind[0]][amax_ind[1]]
-    print(rcind[amax_ind[0]][amax_ind[1]])
+
     ind_minr, ind_maxr, ind_minc, ind_maxc = 0, 0, 0, 0
     ''' Getting the lmax_array matrix indices that contain good vals '''
     if amax_ind[0] >= 1:
@@ -255,9 +259,6 @@ def xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvaltup):
             ind_maxc =  amax_ind[1]+2
         else:
             ind_maxc =  amax_ind[1]+1
-    # ind_minc, ind_maxc = amax_ind[1]-1, amax_ind[1]+2
-    print(ind_minr, ind_maxr)
-    print(ind_minc, ind_maxc)
     for xr in range(ind_minr, ind_maxr):
         tmp_row = []
         for xc in range(ind_minc, ind_maxc):
@@ -270,8 +271,6 @@ def xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvaltup):
             focus_rcinds.append(tmp_row)
     ''' building total dimensions of focus area where subimage is most likely
         to be located '''
-    for xrc in focus_rcinds:
-        print(xrc)
     rowst, rowend = 0, 0
     colst, colend = 0, 0
     # rowst = focus_rcinds[0][0][0]
@@ -285,9 +284,7 @@ def xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvaltup):
             rowend = rcx[0][0][1]
         if rcx[-1][1][1] > colend:
             colend = rcx[-1][1][1]
-        # rowst, colst = rcx[0][0][0], rxc[0][1][0]
-    print(rowst, rowend)
-    print(colst, colend)
+
     return actmval_pixel, (rowst, rowend), (colst, colend)
 
 #>******************************************************************************
@@ -297,7 +294,7 @@ def do_focusarea_acq(imgx, imgy, maxinds, imgx_bounds, orient=""):
     np.set_printoptions(precision=2, linewidth=90, suppress=True)
     rowadj = 0
     coladj = 0
-    print("Imgx focus area", imgx_bounds, "Maxinds", maxinds)
+    # print("Imgx focus area", imgx_bounds, "Maxinds", maxinds)
     imgx_dat = ndimage.imread(imgx)
     imgy_dat = ndimage.imread(imgy)
     if orient=="flip":
@@ -340,11 +337,6 @@ def do_focusarea_acq(imgx, imgy, maxinds, imgx_bounds, orient=""):
             mse_tb.append(mse_blue)
             mse_tr.append(mse_red)
             mse_tg.append(mse_gre)
-            # hr, hbins = np.histogram(loc_ispecx[:,:,2], bins=128, normed=False)
-            # ht_diff = hr - imgy_hr
-            # hist_distred = np.sqrt(np.dot(ht_diff, ht_diff))
-            # hist_tr.append(hist_distred)
-        # hist_dred.append(hist_tr)
         mse_ablue.append(mse_tb)
         mse_agre.append(mse_tg)
         mse_ared.append(mse_tr)
@@ -364,9 +356,9 @@ def do_focusarea_acq(imgx, imgy, maxinds, imgx_bounds, orient=""):
     nredixs = np.unravel_index(np.argmin(npar_red, axis=None), npar_red.shape)
     radjr, radjc = rowst + 2*nredixs[0], colst + 2*nredixs[1]
     nminblue, nmingreen, nminred = np.min(npar_blue), np.min(npar_green), np.min(npar_red)
-    print(nminblue, nblueixs, (radjbr, radjbc))
-    print(nmingreen, ngreenixs, (radjgr, radjgc))
-    print(nminred, nredixs, (radjr, radjc))
+    # print(nminblue, nblueixs, (radjbr, radjbc))
+    # print(nmingreen, ngreenixs, (radjgr, radjgc))
+    # print(nminred, nredixs, (radjr, radjc))
 
     return (nminblue, nblueixs, (radjbr, radjbc)), (nmingreen, ngreenixs, (radjgr, radjgc)), (nminred, nredixs, (radjr, radjc))
 
@@ -376,40 +368,51 @@ def do_indexloc_preprocess(locresults_dict):
     Currently just original and flipped     """
     reskeys = locresults_dict.keys()
 
+    subimage_stat = ""
+    row_ind, col_ind = 0, 0
     comb_minvals = []
     minv_dict = {}
-    # for key, vals in locresults_dict.items():
     for rkey in reskeys:
         rlist = locresults_dict[rkey]
         sumvals = [x[0] for x in rlist]
         indxmin = np.argmin(sumvals)
         minv_dict[rkey] = rlist[indxmin]
         comb_minvals.append((min(sumvals), rkey))
-        # print(sumvals)
-        print(rkey, rlist[indxmin])
-    # finalmin = []
-    # fminval = 0
-    # for fkey, vals in minv_dict.items():
-    #     if fminval==0:
-    #         fminval = vals[0]
-    #     elif fminval > vals[0]:
-    #         finalmin = []
-    #         fminval = vals[0]
-    #         finalmin = list((vals, fkey))
-    pprint(minv_dict.items())
     finmin = min(minv_dict.items(), key=lambda x: x[1][0])
-    print("Finmin", finmin, type(finmin))
+    pixel_inds = [x[2] for x in finmin[1][1:]]
 
-    return finmin
+    if all(x[0] == 1 for x in pixel_inds) and (x[1] == 1 for x in pixel_inds):
+        row_ind = int(np.median([xi[0] for xi in pixel_inds]))
+        col_ind = int(np.median([xi[1] for xi in pixel_inds]))
+        subimage_stat = "True"
+    elif pixel_inds[0][0] == pixel_inds[1][0] and pixel_inds[0][1] == pixel_inds[1][1]:
+        row_ind = int(np.median([xi[0] for xi in pixel_inds]))
+        col_ind = int(np.median([xi[1] for xi in pixel_inds]))
+        subimage_stat = "True"
+    elif pixel_inds[1][0] == pixel_inds[2][0] and pixel_inds[1][1] == pixel_inds[2][1]:
+        row_ind = int(np.median([xi[0] for xi in pixel_inds]))
+        col_ind = int(np.median([xi[1] for xi in pixel_inds]))
+        subimage_stat = "True"
+    elif pixel_inds[0][0] == pixel_inds[2][0] and pixel_inds[0][1] == pixel_inds[2][1]:
+        row_ind = int(np.median([xi[0] for xi in pixel_inds]))
+        col_ind = int(np.median([xi[1] for xi in pixel_inds]))
+        subimage_stat = "True"
+    elif pixel_inds[0] != pixel_inds[1] != pixel_inds[2]:
+        # print("Not a subimage")
+        subimage_stat = "False"
+    else:
+        pass
+    # print(pixel_inds)
 
+    return finmin, (row_ind, col_ind), subimage_stat
 
 #>******************************************************************************
 def do_mse(imageA, imageB):
-	# the 'Mean Squared Error' between the two images is the
-	# sum of the squared difference between the two images;
-	err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
-	err /= float(imageA.shape[0] * imageA.shape[1])
-	return err
+    # the 'Mean Squared Error' between the two images is the
+    # sum of the squared difference between the two images;
+    err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
+    err /= float(imageA.shape[0] * imageA.shape[1])
+    return err
 
 #>******************************************************************************
 def twod_slide_xcorr(islice, subimg):
