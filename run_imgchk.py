@@ -7,7 +7,7 @@
 # and checks if either one of the images is related to another
 # ******************************************************************************
 
-import sys
+import os, sys
 pyver_tup   = sys.version_info[0:2]
 pyver_major = sys.version_info.major
 pyver_minor = sys.version_info.minor
@@ -31,22 +31,23 @@ import fx_img_process
 
 #>******************************************************************************
 def main(imgpath_x, imgpath_y):
-
+    """ Check if files exist and then pass images ordered by size """
     rowinds, colinds = 0, 0
     if checkfile(imgpath_x):
         if checkfile(imgpath_y):
             areax, areay = ret_imgarea(imgpath_x), ret_imgarea(imgpath_y)
             if areax > areay:
-                rowinds, colinds = fx_img_process.fft2_crosscorr(imgpath_x, imgpath_y)
+                results_dict = fx_img_process.fft2_crosscorr(imgpath_x, imgpath_y)
+                # fx_img_process.fft2_crosscorr(imgpath_x, imgpath_y)
             elif areax < areay:
-                rowinds, colinds = fx_img_process.fft2_crosscorr(imgpath_y, imgpath_x)
+                results_dict = fx_img_process.fft2_crosscorr(imgpath_y, imgpath_x)
+                # fx_img_process.fft2_crosscorr(imgpath_y, imgpath_x)
             else:
                 pass
         else:
             sys.exit("Image file DNE")
     else:
         sys.exit("Image file DNE")
-    # print("Python %s.%s" % (pyver_major, pyver_minor))
 
 #>******************************************************************************
 def do_imgtrueflat(ipath):
@@ -86,12 +87,12 @@ def test_main(image_lt):
         if x[0] == 0 or x[0] == 1:
             if area_lt[x[0]] > area_lt[x[1]]:
                 print("Img 1 is bigger")
-                # fx_img_process.fft2_crosscorr(ifdat_lt[x[0]], ifdat_lt[x[1]])
-                rowinds, colinds = fx_img_process.fft2_crosscorr(image_lt[x[0]], image_lt[x[1]])
+                results_dict = fx_img_process.fft2_crosscorr(image_lt[x[0]], image_lt[x[1]])
+                # rowinds, colinds = fx_img_process.fft2_crosscorr(image_lt[x[0]], image_lt[x[1]])
             elif area_lt[x[0]] < area_lt[x[1]]:
                 print("Img 2 is bigger")
-                rowinds, colinds = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])
-                # pass
+                results_dict = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])
+                # rowinds, colinds = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])
             elif area_lt[x[0]] == area_lt[x[1]]:
                 print("same size...")
 
@@ -121,11 +122,20 @@ def test_bigimg(testpath=""):
     """ Return list of all large images and their subimages/slices
     testpath - Maybe(?) implemented later
     """
-    lgimgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/LgTesting/"
+    exefilepath = os.path.realpath(__file__)
+    exedirpath = os.path.dirname(exefilepath)
+    lgimgpath = ""
+
+    if os.path.isdir((exedirpath + "/LgTesting")):
+        lgimgpath =  exedirpath + "/LgTesting/"
+    print(lgimgpath)
+    # lgimgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/LgTesting/"
     limg1 = "04041_mountrainier_2880x1800.jpg"
     limg1c = "04041_mountrainier_smcut.jpg"
-
+    limg2 = "04020_jetincarina_2880x1800.jpg"
+    limg2c = "04020_jetincarina_smcut.jpg"
     img_lt = [lgimgpath + xg for xg in [limg1, limg1c]]
+    img_lt2 = [lgimgpath + xg for xg in [limg2, limg2c]]
     return img_lt
 
 #>******************************************************************************
