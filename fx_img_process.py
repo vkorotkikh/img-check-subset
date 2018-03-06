@@ -157,7 +157,7 @@ def fft2_crosscorr(imgx, imgy):
 
 #>******************************************************************************
 # def nres_slicing(lmax_array, rowcol_inds):
-def xcorr_result_sort(lmax_array, rowcol_inds, nmax=10):
+def xcorr_result_sort(lmax_array, rowcol_inds, nmax=15):
     """ Using the result values to cut up the original image into individual
     elements for more indepth subimage localization
     lmax_array - numpy.ndarray(nxn) - Contains the normalized maximum cross-correlation
@@ -192,7 +192,7 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=10):
                     continue
                 else:
                     maxval_lt.append((tmp_maxval, (val_row[0], val_col[0])))
-            elif tmp_maxval >= (maxval_lt[0][0] - (2*lmax_stdev)) and tmp_maxval > 0:
+            elif tmp_maxval >= (maxval_lt[0][0] - (3*lmax_stdev)) and tmp_maxval > 0:
                 val_row, val_col = np.where(lmax_array==tmp_maxval)
                 prow_rng = range(val_row[0]-1, val_row[0]+2)
                 pcol_rng = range(val_col[0]-1, val_col[0]+2)
