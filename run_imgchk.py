@@ -14,10 +14,12 @@ pyver_minor = sys.version_info.minor
 
 if pyver_tup >= (3, 5):
     pass
-elif pyver_tup >= (2, 7) and pyver_tup <= (3,0):
-    pass
+# elif pyver_tup >= (2, 7) and pyver_tup <= (3,0):
+#     pass
 else:
-    raise Exception("Minimum Python ver 3.5 or 2.7 are required")
+    # raise Exception("Minimum Python ver 3.5 or 2.7 are required")
+    raise Exception("Minimum Python version 3.5 required")
+    sys.exit()
 
 import os
 # from PIL import Image
@@ -132,11 +134,11 @@ def test_bigimg(testpath=""):
     # lgimgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/LgTesting/"
     limg1 = "04041_mountrainier_2880x1800.jpg"
     limg1c = "04041_mountrainier_smcut.jpg"
-    limg2 = "04020_jetincarina_2880x1800.jpg"
-    limg2c = "04020_jetincarina_smcut.jpg"
+    limg2 = "AJkBi5n.jpg"
+    limg2c = "AJkBi5n_smcut.jpg"
     img_lt = [lgimgpath + xg for xg in [limg1, limg1c]]
     img_lt2 = [lgimgpath + xg for xg in [limg2, limg2c]]
-    return img_lt
+    return img_lt2
 
 #>******************************************************************************
 def checkfile(ifilepath):
@@ -152,7 +154,7 @@ if __name__ == "__main__":
     try:
         main(sys.argv[1], sys.argv[2])
     except IndexError:
-        timg_lt = test_imgfeed()
+        timg_lt = test_bigimg()
         if len(timg_lt) > 0:
             test_main(timg_lt)
         else:
