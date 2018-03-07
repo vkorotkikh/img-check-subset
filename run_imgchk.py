@@ -33,18 +33,21 @@ import fx_img_process
 
 #>******************************************************************************
 def main(imgpath_x, imgpath_y):
-    """ Check if files exist and then pass images ordered by size """
+    """ Check if files exist, check if image areas, row and column dimensions
+        are compatible and then pass images by order of area size to
+        ff2_crosscorr function
+    """
 
     if checkfile(imgpath_x):
         if checkfile(imgpath_y):
             areax, xrow, xcol = ret_imgarea(imgpath_x)
             areay, yrow, ycol = ret_imgarea(imgpath_y)
-            imgnamex = os.path.basename(imgpath_x)
+            imgnamex = os.path.basename(imgpath_x)  # Get the filename
             imgnamey = os.path.basename(imgpath_y)
             print("Checking %s and %s" % (imgnamex, imgnamey))
             if areax>areay and xrow>=yrow and xcol>ycol or (areax>areay and xrow>yrow and xcol>=ycol):
                 res_tup, final_rc, stat_str = fx_img_process.fft2_crosscorr(imgpath_x, imgpath_y)
-                imgtype = res_tup[0]
+                imgtype = res_tup[0] # imgtype is 'Orig' or 'Flip'
                 if stat_str=="True":
                     if imgtype=="Orig":
                         print("%s is a subimage of %s " % (imgnamey, imgnamex))
@@ -53,21 +56,21 @@ def main(imgpath_x, imgpath_y):
                         print("%s is a flipped subimage of %s " % (imgnamey, imgnamex))
                         print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
                 elif stat_str=="False":
-                    print(" %s is not a subimage of %s" % (imgnamey, imgnamex))
+                    print("%s is not a subimage of %s" % (imgnamey, imgnamex))
             elif areax<areay and xrow<=yrow and xcol<ycol or (areax<areay and xrow<yrow and xcol<=ycol):
                 res_tup, final_rc, stat_str = fx_img_process.fft2_crosscorr(imgpath_y, imgpath_x)
-                imgtype = res_tup[0]
+                imgtype = res_tup[0] # imgtype is 'Orig' or 'Flip'
                 if stat_str=="True":
                     if imgtype=="Orig":
                         print("%s is a subimage of %s " % (imgnamex, imgnamey))
                         print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
                     elif imgtype=="Flip":
-                        print(" %s is a a flipped subimage of %s " % (imgnamex, imgnamey))
+                        print("%s is a a flipped subimage of %s " % (imgnamex, imgnamey))
                         print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
                 elif stat_str=="False":
-                    print(" %s is not a subimage of %s" % (imgnamex, imgnamey))
+                    print("%s is not a subimage of %s" % (imgnamex, imgnamey))
             else:
-                sys.exit("Images uncomparable due to mismatched row/column dimensions") 
+                sys.exit("Images uncomparable due to mismatched row/column dimensions")
                 pass
         else:
             sys.exit("Image file DNE")
@@ -92,12 +95,6 @@ def do_imgzncc(ipath):
     imgdata = do_imgtrueflat(ipath)
     zndata = (imgdata - imgdata.mean())/ imgdata.std()
     return zndata
-
-#>******************************************************************************
-def do_imgfft2(ipath):
-    imgdata = do_imgtrueflat(ipath)
-    fft2dat = fftpack.fft2(imgdata)
-    return fft2dat
 
 #>******************************************************************************
 def test_main(image_lt):
@@ -132,7 +129,6 @@ def test_main(image_lt):
                 # results_dict = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])
                 res_tup, final_rc, stat_str = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])
                 imgtype = res_tup[0]
-                # print("imgtype: ", imgtype)
                 if stat_str=="True":
                     if imgtype=="Orig":
                         print("%s is a subimage of %s " % (imgnamex, imgnamey))

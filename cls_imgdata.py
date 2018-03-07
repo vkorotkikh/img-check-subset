@@ -18,9 +18,6 @@ class ImgData():
         self.imagepath = imagepath
         self.imgdata = imgdata
         self.area = defarg
-        # self.cols =
-        # self.rows =
-
 
 
     #>******************************************************************************
