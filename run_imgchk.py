@@ -157,7 +157,12 @@ def ret_imgarea(imgarg):
 
 #>******************************************************************************
 def test_imgfeed(testpath=""):
-    timgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/Testing/"
+    exefilepath = os.path.realpath(__file__)
+    exedirpath = os.path.dirname(exefilepath)
+    timgpath = ""
+    if os.path.isdir((exedirpath + "/Testing/")):
+        timgpath = exedirpath + "/Testing/"
+
     timg1 = timgpath + 'jesusc8.jpg'
     timg2 = timgpath + 'jc8slice8.jpg'
     timg3 = timgpath + 'jc8slice8cut.jpg'
@@ -178,8 +183,7 @@ def test_bigimg(testpath=""):
 
     if os.path.isdir((exedirpath + "/LgTesting")):
         lgimgpath =  exedirpath + "/LgTesting/"
-    # print(lgimgpath)
-    # lgimgpath = "/Users/vkorotki/Movies/Utils/img-check-subset/LgTesting/"
+
     limg1 = "04041_mountrainier_2880x1800.jpg"
     limg1c = "04041_mountrainier_smcut.jpg"
     limg2 = "AJkBi5n.jpg"
@@ -192,9 +196,9 @@ def test_bigimg(testpath=""):
 def checkfile(ifilepath):
     """ Checks if file exists at given path=ifilepath. Follows symlinks """
     if os.path.isfile(ifilepath):
-        return 1
+        return True
     else:
-        return 0
+        return False
 
 
 #>******************************************************************************
