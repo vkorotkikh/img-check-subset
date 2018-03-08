@@ -7,7 +7,7 @@
 # and checks if either one of the images is related to another
 # ******************************************************************************
 
-import os, sys
+import sys
 pyver_tup   = sys.version_info[0:2]
 pyver_major = sys.version_info.major
 pyver_minor = sys.version_info.minor
@@ -17,19 +17,28 @@ if pyver_tup >= (3, 5):
 # elif pyver_tup >= (2, 7) and pyver_tup <= (3,0):
 #     pass
 else:
-    # raise Exception("Minimum Python ver 3.5 or 2.7 are required")
-    raise Exception("Minimum Python version 3.5 required")
+    raise Exception("Python version 3.4 or greater is required")
     sys.exit()
 
-import os
-# from PIL import Image
+import os, logging
+
 import itertools as itr
 import numpy as np
-from scipy import fftpack, ndimage
+from scipy import ndimage
 from scipy.misc import imread # uses PIL
 import fx_img_process
 
-# from PIL import Image
+logger = logging.getLogger(__name__)
+
+# Logger handler for output
+handler = logging.FileHandler('run_imgchk.log')
+handler.setLevel(logging.INFO)
+# Format output for logger
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+# Add handler file to logger
+logger.addHandler(handler)
 
 #>******************************************************************************
 def main(imgpath_x, imgpath_y):
@@ -102,6 +111,7 @@ def test_main(image_lt):
     # narg = [do_imgzncc(ix) for ix in image_lt]
     ifdat_lt = [do_imgzncc(ix) for ix in image_lt]
     area_lt = [ret_imgarea(ix) for ix in ifdat_lt]
+    print(area_lt)
     acombs = list(itr.combinations(list(range(0,len(image_lt))),2))
 
     rowinds, colinds = 0, 0
@@ -109,7 +119,9 @@ def test_main(image_lt):
         if x[0] == 0 or x[0] == 1:
             imgnamex = os.path.basename(image_lt[x[0]])
             imgnamey = os.path.basename(image_lt[x[1]])
-            if area_lt[x[0]] > area_lt[x[1]]:
+            areax, xrow, xcol = area_lt[x[0]]
+            areay, yrow, ycol = area_lt[x[1]]
+            if areax>areay and xrow>=yrow and xcol>ycol or (areax>areay and xrow>yrow and xcol>=ycol):
                 print("%s is larger." % imgnamex)
                 # results_dict = fx_img_process.fft2_crosscorr(image_lt[x[0]], image_lt[x[1]])
                 res_tup, final_rc, stat_str = fx_img_process.fft2_crosscorr(image_lt[x[0]], image_lt[x[1]])
@@ -124,7 +136,8 @@ def test_main(image_lt):
                         print("Located at %i,%i  (row,col)\n" % (final_rc[0], final_rc[1]))
                 elif stat_str=="False":
                     print("%s is not a subimage of %s" % (imgnamey, imgnamex))
-            elif area_lt[x[0]] < area_lt[x[1]]:
+            elif areax<areay and xrow<=yrow and xcol<ycol or (areax<areay and xrow<yrow and xcol<=ycol):
+                # elif area_lt[x[0]] < area_lt[x[1]]:
                 print("%s is larger." % imgnamey)
                 # results_dict = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])
                 res_tup, final_rc, stat_str = fx_img_process.fft2_crosscorr(image_lt[x[1]], image_lt[x[0]])

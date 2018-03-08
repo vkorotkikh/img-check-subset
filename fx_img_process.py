@@ -313,12 +313,11 @@ def do_focusarea_acq(imgx, imgy, maxinds, imgx_bounds, orient=""):
     if rowrlol > 0:
         row_range = list(range(0,(imgx_spec.shape[0] - imgy_dat.shape[0]),2))
     else:
-        row_range = range(0, 1)
+        row_range = range(0, 5, 2)
     if colrlol > 0:
         col_range = list(range(0,(imgx_spec.shape[1] - imgy_dat.shape[1]),2))
     else:
-        col_range = range(0, 1)
-
+        col_range = range(0, 2)
     mse_ablue = []
     mse_ared = []
     mse_agre = []
@@ -331,6 +330,11 @@ def do_focusarea_acq(imgx, imgy, maxinds, imgx_bounds, orient=""):
         for xc in col_range:
             tmpc_end = ycol + xc
             loc_ispecx = imgx_spec[xr:tmpr_end, xc:tmpc_end]
+            print(loc_ispecx.shape[0:2])
+            if (yrow, ycol) == loc_ispecx.shape[0:2]:
+                pass
+            else:
+                continue
             mse_blue = do_mse(loc_ispecx[:,:,0], imgyb)
             mse_gre = do_mse(loc_ispecx[:,:,1], imgyg)
             mse_red = do_mse(loc_ispecx[:,:,2], imgyr)
