@@ -7,7 +7,8 @@
 # and checks if either one of the images is related to another
 # ******************************************************************************
 
-import sys, time
+import time
+import logging
 
 import numpy as np
 import scipy as sp

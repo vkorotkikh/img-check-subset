@@ -28,10 +28,12 @@ from scipy import ndimage
 from scipy.misc import imread # uses PIL
 import fx_img_process
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+# logger.setLevel(logging.INFO)
 
 # Logger handler for output
-handler = logging.FileHandler('run_imgchk.log')
+handler = logging.FileHandler('imgcheck.log')
 handler.setLevel(logging.INFO)
 # Format output for logger
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -53,6 +55,9 @@ def main(imgpath_x, imgpath_y):
             areay, yrow, ycol = ret_imgarea(imgpath_y)
             imgnamex = os.path.basename(imgpath_x)  # Get the filename
             imgnamey = os.path.basename(imgpath_y)
+            logger.info('Checking %s and %s ' % (imgnamex, imgnamey))
+            logger.info('%s Info; %i x %i  Area: %i' % (imgnamex, xrow, xcol, areax))
+            logger.info('%s Info; %i x %i  Area: %i' % (imgnamey, yrow, ycol, areay))
             print("Checking %s and %s" % (imgnamex, imgnamey))
             if areax>areay and xrow>=yrow and xcol>ycol or (areax>areay and xrow>yrow and xcol>=ycol):
                 res_tup, final_rc, stat_str = fx_img_process.fft2_crosscorr(imgpath_x, imgpath_y)
@@ -121,6 +126,9 @@ def test_main(image_lt):
             imgnamey = os.path.basename(image_lt[x[1]])
             areax, xrow, xcol = area_lt[x[0]]
             areay, yrow, ycol = area_lt[x[1]]
+            logger.info('Checking %s and %s ' % (imgnamex, imgnamey))
+            logger.info('%s Info; %i x %i  Area: %i' % (imgnamex, xrow, xcol, areax))
+            logger.info('%s Info; %i x %i  Area: %i' % (imgnamey, yrow, ycol, areay))
             if areax>areay and xrow>=yrow and xcol>ycol or (areax>areay and xrow>yrow and xcol>=ycol):
                 print("%s is larger." % imgnamex)
                 # results_dict = fx_img_process.fft2_crosscorr(image_lt[x[0]], image_lt[x[1]])
