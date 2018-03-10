@@ -8,7 +8,7 @@
 # ******************************************************************************
 
 import time
-import logging
+import logging, inspect
 
 import numpy as np
 import scipy as sp
@@ -18,6 +18,21 @@ from scipy import fftpack, ndimage
 from scipy.misc import imread
 from scipy.signal.signaltools import correlate2d as cor2d
 
+# Set logging basicConfig level
+logging.basicConfig(level=logging.INFO)
+logger_ip = logging.getLogger(__name__)
+
+# Logger handler for output
+handler = logging.FileHandler('fx_img_process.log')
+handler.setLevel(logging.INFO)
+
+# Format output for logger
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+# Add handler file to logger
+logger_ip.addHandler(handler)
+
 #>******************************************************************************
 def do_grayscale(imgarr):
     """ Simplistic grayscale operation on a imgdata array """
@@ -25,6 +40,13 @@ def do_grayscale(imgarr):
         return sp.average(imgarr, -1)
     else:
         return imgarr
+
+#>******************************************************************************
+def realgray_shift(imgarray):
+    if len(imgarray.shape) == 3:
+        return sp.inner(imgarray, [299, 587, 114]) / 1000.0
+    else:
+        return imgarray
 
 #>******************************************************************************
 def do_imgznorm(ipath):
@@ -52,22 +74,21 @@ def fft2_crosscorr(imgx, imgy):
     imgx - filepath for larger image
     imgy - filepath for smaller image """
     '''format numpy print float output '''
-    stime = time.time()
+
+    logger_ip.info('Running %s for two images' % (inspect.stack()[0][3]))
     np.set_printoptions(precision=2, linewidth=90, suppress=True)
 
     imgx_dat = do_imgznorm(imgx)
     imgy_dat = do_imgznorm(imgy)
     imgy_flp = do_imgflipnorm(imgy)
-    imgx_dim = imgx_dat.shape
-    imgy_dim = imgy_dat.shape
-    ixd, iyd = imgx_dim, imgy_dim
+    ixd = imgx_dat.shape
+    iyd = imgy_dat.shape
     xht = ixd[0] # imgx height/rows
     xwd = ixd[1] # imgx width/colums
     yht = iyd[0] # imgy height/rows
     ywd = iyd[1] # imgy width/columns
 
-    # mulfact = 4
-    # upperb, lowerb = 0, 0
+    imgx_area = int(xht*xwd)
     locmax_lt = []  # For storing crosscorr values
     locflip_lt = [] # For storing flip crosscorr values
     # if xht > yht and xwd == ywd: # loop over rows
@@ -135,9 +156,15 @@ def fft2_crosscorr(imgx, imgy):
 
     # do_print_xcorrstats(locmax_normed)
     # do_print_xcorrstats(locmflip_norm)
-
-    xcorr_sortres_lt = xcorr_result_sort(locmax_normed, rcindices_lt)
-    xcorr_sortresfl_lt = xcorr_result_sort(locmflip_norm, rcindices_lt)
+    nmax = 4
+    if imgx_area < (1680*1050):
+        pass
+    elif imgx_area > (1680*1050) and imgx_area < (1920*1080):
+        nmax = 8
+    elif imgx_area > (1920*1080):
+        nmax = 13
+    xcorr_sortres_lt = xcorr_result_sort(locmax_normed, rcindices_lt, nmax)
+    xcorr_sortresfl_lt = xcorr_result_sort(locmflip_norm, rcindices_lt, nmax)
 
     loc_results={'Orig':[], 'Flip':[]}
     for xsort in xcorr_sortres_lt:
@@ -158,7 +185,7 @@ def fft2_crosscorr(imgx, imgy):
 
 #>******************************************************************************
 # def nres_slicing(lmax_array, rowcol_inds):
-def xcorr_result_sort(lmax_array, rowcol_inds, nmax=15):
+def xcorr_result_sort(lmax_array, rowcol_inds, nmax=5):
     """ Using the result values to cut up the original image into individual
     elements for more indepth subimage localization
     lmax_array - numpy.ndarray(nxn) - Contains the normalized maximum cross-correlation
@@ -171,6 +198,7 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=15):
     ie euclidean distance 1 then it is discarded    """
     rows, cols = lmax_array.shape
     # totavrg = np.average(lmax_array)
+    logger_ip.info('Running %s for two images' % (inspect.stack()[0][3]))
     lmax_stdev = np.std(lmax_array)
     abmax_val = np.amax(lmax_array)
     maxval_lt = []
@@ -180,7 +208,7 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=15):
             ind_tup = np.unravel_index(np.argmax(lmax_array, axis=None), (rows,cols))
             maxval_lt.append((tmp_maxval, ind_tup))
         elif maxval_lt:
-            if tmp_maxval >= (maxval_lt[0][0] - (lmax_stdev)) and tmp_maxval > 0:
+            if tmp_maxval >= (maxval_lt[0][0] - (lmax_stdev)) and tmp_maxval > lmax_stdev:
                 val_row, val_col = np.where(lmax_array==tmp_maxval)
                 prow_rng = range(val_row[0]-1, val_row[0]+2)
                 pcol_rng = range(val_col[0]-1, val_col[0]+2)
@@ -193,7 +221,7 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=15):
                     continue
                 else:
                     maxval_lt.append((tmp_maxval, (val_row[0], val_col[0])))
-            elif tmp_maxval >= (maxval_lt[0][0] - (3*lmax_stdev)) and tmp_maxval > 0:
+            elif tmp_maxval >= (maxval_lt[0][0] - (3*lmax_stdev)) and tmp_maxval > lmax_stdev:
                 val_row, val_col = np.where(lmax_array==tmp_maxval)
                 prow_rng = range(val_row[0]-1, val_row[0]+2)
                 pcol_rng = range(val_col[0]-1, val_col[0]+2)
@@ -206,9 +234,12 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=15):
                     continue
                 else:
                     maxval_lt.append((tmp_maxval, (val_row[0], val_col[0])))
-
-    absmax_val = np.partition(lmax_array.flatten(), -2)[-2]
-    abthrd_val = np.partition(lmax_array.flatten(), -2)[-3]
+    for vals in maxval_lt:
+        logger_ip.info(vals)
+    for vrow in lmax_array:
+        logger_ip.info(vrow)
+    # absmax_val = np.partition(lmax_array.flatten(), -2)[-2]
+    # abthrd_val = np.partition(lmax_array.flatten(), -2)[-3]
     amax_ind = np.unravel_index(np.argmax(lmax_array, axis=None), (rows,cols))
     # print("Maximum value", abmax_val, "Type lmax_arra:", type(lmax_array))
     gslice_lt = []
@@ -223,7 +254,7 @@ def xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvaltup):
     """ Using the found top 2-3 values slice up the result matrix grid for each
     one, mapping out the pixel size of the most probable subimage location for
     each value """
-
+    logger_ip.info('Running %s for two images' % (inspect.stack()[0][3]))
     rows, cols = lmax_array.shape
     focus_rcinds = []
     tmax_val = mvaltup[0]
@@ -285,7 +316,7 @@ def xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvaltup):
             rowend = rcx[0][0][1]
         if rcx[-1][1][1] > colend:
             colend = rcx[-1][1][1]
-
+    logger_ip.info('Focus Area: %i : %i , %i : %i ' % (rowst, rowend, colst, colend))
     return actmval_pixel, (rowst, rowend), (colst, colend)
 
 #>******************************************************************************
@@ -300,28 +331,40 @@ def do_focusarea_acq(imgx, imgy, maxinds, imgx_bounds, orient=""):
     imgy_dat = ndimage.imread(imgy)
     if orient=="flip":
         imgy_dat = np.flipud(imgy_dat)
-    yrow, ycol, rgbval = imgy_dat.shape
+    xrow, xcol, rgbx = imgx_dat.shape
+    yrow, ycol, rgby = imgy_dat.shape
+
+    roweq = (xrow==yrow)
+    coleq = (xcol==ycol)
     rowst, rowend = imgx_bounds[0]
     colst, colend = imgx_bounds[1]
+
+    if orient=="flip":
+        imgy_dat = np.flipud(imgy_dat)
+
     ''' cut out the smaller focus area from the large image '''
     imgx_spec = imgx_dat[rowst:(rowend+rowadj), colst:(colend+coladj)]
+    logger_ip.info('imgx_spec area - [ %i:%i , %i:%i ]' % (rowst, (rowend+rowadj), colst, (colend+coladj)))
     ''' split imagey rgb data into seperate arrays '''
     imgyb, imgyg, imgyr = imgy_dat[:, :, 0], imgy_dat[:, :, 1], imgy_dat[:, :, 2] # For RGB image
 
     row_range, col_range = [], []
-    rowrlol = imgx_spec.shape[0] - imgy_dat.shape[0]
-    colrlol = imgx_spec.shape[1] - imgy_dat.shape[1]
-    if rowrlol > 0:
+    row_dim = imgx_spec.shape[0] - imgy_dat.shape[0]
+    col_dim = imgx_spec.shape[1] - imgy_dat.shape[1]
+    if row_dim > 0:
         row_range = list(range(0,(imgx_spec.shape[0] - imgy_dat.shape[0]),2))
-    else:
-        row_range = range(0, 5, 2)
-    if colrlol > 0:
+    elif row_dim==0:
+        # row_range = range(0, 2, 1)
+        row_range = range(0,1)
+    if col_dim > 0:
         col_range = list(range(0,(imgx_spec.shape[1] - imgy_dat.shape[1]),2))
     else:
-        col_range = range(0, 2)
+        # col_range = range(0, 2, 1)
+        col_range = range(0,1)
     mse_ablue = []
     mse_ared = []
     mse_agre = []
+    tmpr_end, tmpc_end = 0, 0
     for xr in row_range:
         tmpr_end = yrow + xr
         mse_tb = []
@@ -331,11 +374,10 @@ def do_focusarea_acq(imgx, imgy, maxinds, imgx_bounds, orient=""):
         for xc in col_range:
             tmpc_end = ycol + xc
             loc_ispecx = imgx_spec[xr:tmpr_end, xc:tmpc_end]
-            print(loc_ispecx.shape[0:2])
-            if (yrow, ycol) == loc_ispecx.shape[0:2]:
-                pass
-            else:
-                continue
+            # if (yrow, ycol) == loc_ispecx.shape[0:2]:
+            #     pass
+            # else:
+            #     continue
             mse_blue = do_mse(loc_ispecx[:,:,0], imgyb)
             mse_gre = do_mse(loc_ispecx[:,:,1], imgyg)
             mse_red = do_mse(loc_ispecx[:,:,2], imgyr)
@@ -488,11 +530,3 @@ def get_npstats(np_onedarray):
     arr_amax = np.average(np_onedarray)
     arr_stdev = np.std(np_onedarray)
     return arr_avg, arr_amax, arr_stdev
-
-
-#>******************************************************************************
-def realgray_shift(imgarray):
-    if len(imgarray.shape) == 3:
-        return sp.inner(imgarray, [299, 587, 114]) / 1000.0
-    else:
-        return imgarray

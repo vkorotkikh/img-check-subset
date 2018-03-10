@@ -30,7 +30,6 @@ import fx_img_process
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.INFO)
 
 # Logger handler for output
 handler = logging.FileHandler('imgcheck.log')
@@ -230,7 +229,8 @@ if __name__ == "__main__":
         try:
             test_main(sys.argv[1])
         except IndexError:
-            timg_lt = test_imgfeed()
+            # timg_lt = test_imgfeed()
+            timg_lt = test_bigimg()
             if len(timg_lt) > 0:
                 if isinstance(timg_lt[0], list):
                     for lt in timg_lt:
