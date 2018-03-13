@@ -190,8 +190,7 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=5):
     elements for more indepth subimage localization
     lmax_array - numpy.ndarray(nxn) - Contains the normalized maximum cross-correlation
     values computed for each subcell of main image
-    rowcol_inds - List containing tuples of (height start, height end),
-    (width start, width end)
+    rowcol_inds - List containing tuples of (height start, height end),(width start, width end)
     nmax - int value. Specifies the maximum number of 'local' maximum values to
     look for in the lmax_array. The code checks each found max value for proximity
     to already found local max values and if it's within 1 row or column away
@@ -208,6 +207,13 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=5):
             ind_tup = np.unravel_index(np.argmax(lmax_array, axis=None), (rows,cols))
             maxval_lt.append((tmp_maxval, ind_tup))
         elif maxval_lt:
+            ''' set the criteria for saving a max value from the local max val
+            array and and it's lmax_array cell indices location for l processing
+
+            Minimum - tmp_maxval > lmax_stdev (std deviation of all local max values)
+            Maximum - tmp_maxval < (maxval_lt[0][0] (maximum value of lmax_array)
+            - lmax_stdev
+            '''
             if tmp_maxval >= (maxval_lt[0][0] - (lmax_stdev)) and tmp_maxval > lmax_stdev:
                 val_row, val_col = np.where(lmax_array==tmp_maxval)
                 prow_rng = range(val_row[0]-1, val_row[0]+2)
@@ -222,6 +228,8 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=5):
                 else:
                     maxval_lt.append((tmp_maxval, (val_row[0], val_col[0])))
             elif tmp_maxval >= (maxval_lt[0][0] - (3*lmax_stdev)) and tmp_maxval > lmax_stdev:
+                ''' Actually this logic here is not needed, since the only difference
+                between this and the if statement is 3*lmax_stdev   '''
                 val_row, val_col = np.where(lmax_array==tmp_maxval)
                 prow_rng = range(val_row[0]-1, val_row[0]+2)
                 pcol_rng = range(val_col[0]-1, val_col[0]+2)
@@ -253,7 +261,12 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=5):
 def xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvaltup):
     """ Using the found top 2-3 values slice up the result matrix grid for each
     one, mapping out the pixel size of the most probable subimage location for
-    each value """
+    each value
+    lmax_array - numpy.ndarray(nxn) - Contains the normalized maximum cross-correlation
+    values computed for each subcell of main image
+    rowcol_inds - List containing tuples of (height start, h. end), (width start, wid. end)
+    mvaltup - tuple with max value and it's (row, col) indices in lmax_array
+    """
     logger_ip.info('Running %s for two images' % (inspect.stack()[0][3]))
     rows, cols = lmax_array.shape
     focus_rcinds = []
