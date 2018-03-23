@@ -167,12 +167,14 @@ def fft2_crosscorr(imgx, imgy):
     xcorr_sortresfl_lt = xcorr_result_sort(locmflip_norm, rcindices_lt, nmax)
 
     loc_results={'Orig':[], 'Flip':[]}
+    ''' Calculating focus areas for original subimage '''
     for xsort in xcorr_sortres_lt:
         maxvloc, rowstup, colstup = xsort[0], xsort[1], xsort[2]
         minb, ming, minr = do_focusarea_acq(imgx, imgy, maxvloc, (rowstup, colstup))
         loc_results['Orig'].append((int(minb[0]+ming[0]+minr[0]),minb, ming,minr))
 
     # print("Testing xcorr_sortresfl_lt")
+    ''' Calculating 'focus areas' for flipped image xcorrelated values  '''
     for flsort in xcorr_sortresfl_lt:
         maxvloc, rowstup, colstup = flsort[0], flsort[1], flsort[2]
         minb, ming, minr = do_focusarea_acq(imgx, imgy, maxvloc, (rowstup, colstup), "flip")
@@ -180,7 +182,6 @@ def fft2_crosscorr(imgx, imgy):
 
     resprocessed_tup, rowcol_final, stat_str = do_indexloc_preprocess(loc_results)
     return resprocessed_tup, rowcol_final, stat_str
-
 
 
 #>******************************************************************************
@@ -260,8 +261,8 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=5):
 #>******************************************************************************
 def xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvaltup):
     """ Using the found top 2-3 values slice up the result matrix grid for each
-    one, mapping out the pixel size of the most probable subimage location for
-    each value
+    one, mapping out a square pixel size of the most probable subimage location
+    for local max each value.
     lmax_array - numpy.ndarray(nxn) - Contains the normalized maximum cross-correlation
     values computed for each subcell of main image
     rowcol_inds - List containing tuples of (height start, h. end), (width start, wid. end)
