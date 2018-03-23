@@ -24,7 +24,7 @@ logger_ip = logging.getLogger(__name__)
 
 # Logger handler for output
 handler = logging.FileHandler('fx_img_process.log')
-handler.setLevel(logging.INFO)
+handler.setLevel(logging.DEBUG)
 
 # Format output for logger
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -159,9 +159,9 @@ def fft2_crosscorr(imgx, imgy):
     nmax = 4
     if imgx_area < (1680*1050):
         pass
-    elif imgx_area > (1680*1050) and imgx_area < (1920*1080):
+    elif imgx_area >= (1680*1050) and imgx_area < (1920*1080):
         nmax = 8
-    elif imgx_area > (1920*1080):
+    elif imgx_area >= (1920*1080):
         nmax = 13
     xcorr_sortres_lt = xcorr_result_sort(locmax_normed, rcindices_lt, nmax)
     xcorr_sortresfl_lt = xcorr_result_sort(locmflip_norm, rcindices_lt, nmax)
@@ -197,8 +197,7 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=5):
     to already found local max values and if it's within 1 row or column away
     ie euclidean distance 1 then it is discarded    """
     rows, cols = lmax_array.shape
-    # totavrg = np.average(lmax_array)
-    logger_ip.info('Running %s for two images' % (inspect.stack()[0][3]))
+    # logger_ip.info('Running %s for two images' % (inspect.stack()[0][3]))
     lmax_stdev = np.std(lmax_array)
     abmax_val = np.amax(lmax_array)
     maxval_lt = []
@@ -244,9 +243,9 @@ def xcorr_result_sort(lmax_array, rowcol_inds, nmax=5):
                 else:
                     maxval_lt.append((tmp_maxval, (val_row[0], val_col[0])))
     for vals in maxval_lt:
-        logger_ip.info(vals)
+        logger_ip.debug(vals)
     for vrow in lmax_array:
-        logger_ip.info(vrow)
+        logger_ip.debug(vrow)
     # absmax_val = np.partition(lmax_array.flatten(), -2)[-2]
     # abthrd_val = np.partition(lmax_array.flatten(), -2)[-3]
     amax_ind = np.unravel_index(np.argmax(lmax_array, axis=None), (rows,cols))
@@ -268,7 +267,7 @@ def xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvaltup):
     rowcol_inds - List containing tuples of (height start, h. end), (width start, wid. end)
     mvaltup - tuple with max value and it's (row, col) indices in lmax_array
     """
-    logger_ip.info('Running %s for two images' % (inspect.stack()[0][3]))
+    # logger_ip.info('Running %s for two images' % (inspect.stack()[0][3]))
     rows, cols = lmax_array.shape
     focus_rcinds = []
     tmax_val = mvaltup[0]
@@ -330,7 +329,7 @@ def xcorr_resgrid_slicing(lmax_array, rowcol_inds, mvaltup):
             rowend = rcx[0][0][1]
         if rcx[-1][1][1] > colend:
             colend = rcx[-1][1][1]
-    logger_ip.info('Focus Area: %i : %i , %i : %i ' % (rowst, rowend, colst, colend))
+    logger_ip.debug('Focus Area: %i : %i , %i : %i ' % (rowst, rowend, colst, colend))
     return actmval_pixel, (rowst, rowend), (colst, colend)
 
 #>******************************************************************************
@@ -358,7 +357,7 @@ def do_focusarea_acq(imgx, imgy, maxinds, imgx_bounds, orient=""):
 
     ''' cut out the smaller focus area from the large image '''
     imgx_spec = imgx_dat[rowst:(rowend+rowadj), colst:(colend+coladj)]
-    logger_ip.info('imgx_spec area - [ %i:%i , %i:%i ]' % (rowst, (rowend+rowadj), colst, (colend+coladj)))
+    logger_ip.debug('imgx_spec area - [ %i:%i , %i:%i ]' % (rowst, (rowend+rowadj), colst, (colend+coladj)))
     ''' split imagey rgb data into seperate arrays '''
     imgyb, imgyg, imgyr = imgy_dat[:, :, 0], imgy_dat[:, :, 1], imgy_dat[:, :, 2] # For RGB image
 
