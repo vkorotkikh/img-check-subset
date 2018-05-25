@@ -12,7 +12,7 @@ pyver_tup   = sys.version_info[0:2]
 pyver_major = sys.version_info.major
 pyver_minor = sys.version_info.minor
 
-if pyver_tup >= (3, 5):
+if pyver_tup >= (3, 4):
     pass
 # elif pyver_tup >= (2, 7) and pyver_tup <= (3,0):
 #     pass
@@ -208,9 +208,13 @@ def test_bigimg(testpath=""):
     limg1c = "04041_mountrainier_smcut.jpg"
     limg2 = "AJkBi5n.jpg"
     limg2c = "AJkBi5n_smcut.jpg"
+    xmimg = "eden_nebula_by_starkiteckt.png"
+    xmimgc = "eden_nebula_by_smcut.png"
     img_lt = [lgimgpath + xg for xg in [limg1, limg1c]]
     img_lt2 = [lgimgpath + xg for xg in [limg2, limg2c]]
+    img_lt3 = [lgimgpath + xg for xg in [xmimg, xmimgc]]
     return [img_lt, img_lt2]
+    # return [img_lt3]
 
 #>******************************************************************************
 def checkfile(ifilepath):

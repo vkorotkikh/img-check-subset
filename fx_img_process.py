@@ -416,9 +416,9 @@ def do_focusarea_acq(imgx, imgy, maxinds, imgx_bounds, orient=""):
     nredixs = np.unravel_index(np.argmin(npar_red, axis=None), npar_red.shape)
     radjr, radjc = rowst + 2*nredixs[0], colst + 2*nredixs[1]
     nminblue, nmingreen, nminred = np.min(npar_blue), np.min(npar_green), np.min(npar_red)
-    # print(nminblue, nblueixs, (radjbr, radjbc))
-    # print(nmingreen, ngreenixs, (radjgr, radjgc))
-    # print(nminred, nredixs, (radjr, radjc))
+    print(nminblue, nblueixs, (radjbr, radjbc))
+    print(nmingreen, ngreenixs, (radjgr, radjgc))
+    print(nminred, nredixs, (radjr, radjc))
 
     return (nminblue, nblueixs, (radjbr, radjbc)), (nmingreen, ngreenixs, (radjgr, radjgc)), (nminred, nredixs, (radjr, radjc))
 
